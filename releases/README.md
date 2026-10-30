@@ -33,7 +33,8 @@ sha256sum super.img
 # 应等于 76bd8fe4a5fdfc49a8734ab446c3ac36055ced54ca12b0d9514888daa4012426
 ```
 
-分片命名：`super.img.partaa`、`super.img.partab`、`super.img.partac`、`super.img.partad`。
+分片命名：`super.img.part00`、`super.img.part01`、`super.img.part02`、`super.img.part03`
+（前 3 片各 1,992,294,400 B，末片 471,908,336 B；`cat super.img.part* > super.img` 已验证可还原）。
 
 ---
 
