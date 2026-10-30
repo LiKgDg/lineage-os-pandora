@@ -54,15 +54,27 @@ sudo apt install -y adb android-sdk-platform-tools-common
 
 **情况 1：`networkingMode=Mirrored`（本机就是这种）**
 
-WSL 与 Windows 共享网络栈，直接走回环地址即可，不需要算 IP：
+WSL 与 Windows 共享回环，`adb` 默认就连 `localhost:5037`，正好命中 Windows 的 server，
+**不需要设置任何环境变量**。实测：
+
+```
+$ adb devices
+List of devices attached
+fd3af370	device
+$ adb shell getprop ro.product.model
+25098PN5AC
+```
+
+判断方法：`%UserProfile%\.wslconfig` 里有 `networkingMode=Mirrored`，
+且 WSL 内 `ip route show default` 显示的是 LAN 网关（本机 `192.168.31.1`）而非 `172.x` 虚拟网段。
+
+如需显式指定（例如 Windows 侧换了端口），再写：
 
 ```bash
 echo 'export ADB_SERVER_SOCKET=tcp:127.0.0.1:5037' >> ~/.bashrc
-source ~/.bashrc
 ```
 
-判断方法：`cat /etc/wsl.conf` 或 `%UserProfile%\.wslconfig` 里有 `networkingMode=Mirrored`。
-本机实测默认路由是 `default via 192.168.31.1`（LAN 网关，而非 WSL 虚拟网段），即为镜像模式。
+注意：登录 shell（`bash -l`）读的是 `~/.profile` 而非 `~/.bashrc`，两者按需写入。
 
 **情况 2：默认 NAT 模式**
 
@@ -167,6 +179,7 @@ WSL 走方案 A 时，`adb connect` 是发给 Windows 的 server，实际连接�
 | `adb server version doesn't match this client` | 两侧 adb 版本不一致 | 统一 platform-tools 版本，或只用 Windows 的 server |
 | `cannot connect to daemon` / `Connection refused` | Windows 端没加 `-a`，或防火墙拦截 | 重启 server 加 `-a`，放行 5037 |
 | `ADB server didn't ACK` | 5037 被其它进程占用 | `netstat -ano \| findstr 5037` 找到 PID 后结束 |
+| 启动 `-a` 时报 `could not install *smartsocket* listener: cannot bind to 0.0.0.0:5037` | 已有别的 adb server 占着端口 | 本机实测是**柚坛工具箱**自带的 `platform-tools\adb.exe` 常驻。结束该进程后再起，或直接用它的 server（只绑回环，镜像模式下 WSL 也能连） |
 | `error: no devices/emulators found` 但设备已插 | 设备未授权 / 驱动异常 / 挂在了 WSL 侧 | 手机确认"允许 USB 调试"，`adb kill-server` 后重插 |
 | `usbipd bind` 报权限错误 | 未用管理员 PowerShell | 以管理员身份重开 PowerShell |
 | `usbipd attach` 后设备在 WSL 里时有时无 | WSL VM 休眠导致 USB/IP 断链 | 保持 WSL 终端打开，或重跑 `attach` |
