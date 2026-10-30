@@ -125,35 +125,56 @@ bash scripts/build/build_twrp.sh 10       # 前台编译，GUI 终端可见进�
 
 ---
 
-## 完整 ROM 的缺口
+## LineageOS 24.0 完整 ROM 进度
 
-`AlexZorzi/android_device_xiaomi_sm8850-common`（分支 `lineage-24.0`）提供了公共设备树，
-但完整 ROM 还缺这些，缺一个都编不了：
+23.2 时代判断「完整 ROM 不可行」是错的。LOS **24.0** 的 manifest 里自带
+`hardware/qcom-caf/sm8850`（116 MB），只是它只在自家 Gerrit 上，GitHub 镜像查不到。
+用 `git ls-remote github.com` 判断 LOS 有没有某个仓库，方法本身就是错的。
 
 | 依赖 | 状态 | 说明 |
 |---|---|---|
-| `device/xiaomi/sm8850-common` | ✅ 已有 | 公共层，被机型树 inherit |
-| `device/xiaomi/pudding` / `popsicle` | ❌ 缺 | 机型树，负责 `PRODUCT_NAME` 与机型 blobs |
-| `vendor/xiaomi/sm8850-common` | ❌ 缺 | `common.mk` 里 `inherit-product` 硬引用 |
-| `kernel/xiaomi/sm8850` | ❌ 缺 | OSS 内核或预编译内核 |
-| `hardware/qcom-caf/sm8850` | ❌ 缺 | **最大阻塞**，LOS 官方最高 `sm8750`，而 `AUDIO_HAL_DIR` 写死指向它 |
+| LOS 24.0 源码树 | ✅ | 1400 个项目 / 409 GB，见 `docs/los24-build-notes.md` |
+| `device/xiaomi/sm8850-common` | ✅ | lolipuru 上游（标注 booted），165 个提交 |
+| `vendor/xiaomi/sm8850-common` | ✅ | blobs |
+| `hardware/qcom-caf/sm8850` | ✅ | 116 MB，含 `audio/primary-hal/configs/canoe` |
+| `device/xiaomi/pandora` | ✅ | 本仓库 `device-trees/los24-pandora/` |
+| `device/xiaomi/pandora-kernel` | ✅ | 从 stock OTA 提取，262 MB |
+| `vendor/xiaomi/pandora` | ❌ | 机型专属 blobs，待从 OTA 提取 |
 
-`device/xiaomi/pudding` 这类机型树**无法从官方包反编译得到**——它是构建期配置，
-不随镜像发布，只能根据 `build.prop` / `vintf manifest` / `init rc` / `fstab` 反推后手写。
-可提取的只有 blobs 和内核 DTS。
+验收分级：
+
+| 级别 | 内容 | 状态 |
+|---|---|---|
+| D1 | `lunch lineage_pandora-trunk_staging-userdebug` | ✅ 通过 |
+| D2 | `m nothing`（全量 soong 分析） | 🔄 修完 3 类问题后重跑 |
+| D3 | `mka bacon` 出 zip | ⏸ |
+| D4 | 刷入并启动 | ⏸ |
+
+D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
+
+1. `hardware/xiaomi` 不在 LOS manifest，但被 `common.mk` 写进 `PRODUCT_SOONG_NAMESPACES`
+2. `vendor/xiaomi/sm8850-common` 的 blob 包过度声明依赖，触发 vendor 变体级联
+3. `external/deqp` 的 git 索引被清空，缺 3545 个文件
+
+机型树**无法从官方包反编译得到**——它是构建期配置，不随镜像发布，
+只能根据 `build.prop` / `vintf manifest` / `init rc` / `fstab` 反推后手写。
+可提取的只有 blobs 和内核设备树。
 
 
 ---
 
 ## 关键结论
 
-1. **完整 ROM 路线不可行**：LineageOS 23.2 最高只到 `hardware/qcom-caf/sm8750`，SM8850 缺 CAF 源码。
+1. **LOS 24.0 上完整 ROM 路线可行**：`hardware/qcom-caf/sm8850` 在 manifest 里自带。
 2. **system-only 路线可行**：stock vendor 已是 Android 16（system-sdk 36），与 LOS 23.2 的 VNDK 同代。
 3. **逻辑分区共 8 个**（取自 stock `vendor/etc/fstab.qcom`）：
    `system` `system_ext` `product` `mi_ext` `vendor` `vendor_dlkm` `system_dlkm` `odm`。
    常见 TWRP 设备树漏掉 `mi_ext`。
 4. **`ALLOW_MISSING_DEPENDENCIES := true` 会掩盖真实依赖缺失**，表现为 aconfig 库重复定义类。
 5. **`sys.usb.ffs.ready` 是 adb 与 fastboot 共用的全局标志**，切换模式必须先停旧服务再清零。
+6. **`repo init` 的 `-g` 决定拉哪些项目**，加在 `sync` 上无效；漏组时 `repo sync` 静默跳过、不报错。
+7. **GKI 内核跨机型共用**：pandora 与 popsicle 的 `kernel` 二进制 sha256 完全一致，
+   但 `dtbo.img` 与 `vendor_dlkm` 是机型专属，不能复用。
 
 ---
 

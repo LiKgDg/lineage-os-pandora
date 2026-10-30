@@ -1,0 +1,33 @@
+# pandora (Xiaomi 17 Pro) ODM properties
+#
+# 全部取自 stock（OS3.0.318.0.WBLCNXM）实测：
+#   adb shell getprop / cat /odm/build.prop
+# 采集时间 2026-10-31
+
+# 机型
+ro.product.odm.device=pandora
+ro.product.odm.model=25098PN5AC
+
+# Audio
+ro.vendor.audio.A2H.cirrus=true
+
+# Bluetooth
+bluetooth.device.default_name=Xiaomi 17 Pro
+
+# Display
+# wm size = 1220x2656, wm density = 520
+persist.sys.miui_resolution=1220,2656,520
+ro.vendor.mi_sf.supported_automode_maxfps_list=60,120
+ro.vendor.touchfeature.type=247
+vendor.display.enable_brightness_drm_prop=1
+
+# Fingerprint（屏下指纹）
+# sensor_location 继承自 popsicle，需按 stock overlay 核对
+persist.vendor.fingerprint.type=udfps
+persist.vendor.fingerprint.sensor_location=600|2320|109
+
+# Marketname
+ro.product.marketname=Xiaomi 17 Pro
+
+# USB
+vendor.usb.product_string=Xiaomi 17 Pro
