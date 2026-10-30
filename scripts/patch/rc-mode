@@ -1,0 +1,110 @@
+#!/system/bin/sh
+#
+# rc-mode — recovery 模式下通过 adb 免交互切换工作模式
+#
+# 作用范围：仅 recovery。依赖 /system/bin/fastbootd、init.recovery.usb.rc 的
+#           USB gadget 配置、init.recovery.qcom.rc 的切换时序、以及 recovery
+#           自身对 BCB 的处理。
+#
+# 触发条件：adb 已连接且授权（recovery 里 `adb devices` 显示 recovery）。
+#
+# 用法：rc-mode <模式>
+#   fastboot | fbtd   切到 fastbootd（不重启），USB 变为 18d1:4ee0
+#   adb               切回 adb（不重启），USB 变为 18d1:d001
+#   sideload          重启进入 adb sideload（recovery 读 BCB 后自动开 minadbd）
+#   rescue            重启进入 rescue 模式
+#   reboot            普通重启
+#   poweroff          关机
+#   status            打印当前状态
+#
+# 说明：切换时 init 会先把 "none" 写入 UDC 解绑、停旧服务、清零 ffs.ready，
+#       再由目标服务置位后重新绑定，主机会重新枚举。切到 fastboot 后 adb 会
+#       立刻断开，属正常现象。
+#
+# 安全网：切换后 8 秒内 sys.usb.state 没变成目标值，会自动退回 adb，
+#         避免 gadget 停在解绑状态导致"电脑上 USB 设备消失"。
+
+SELF="$0"
+TIMEOUT=8
+
+usage() {
+    echo "用法: rc-mode <fastboot|fbtd|adb|sideload|rescue|reboot|poweroff|status>"
+    exit 2
+}
+
+status() {
+    echo "sys.usb.state      = $(getprop sys.usb.state)"
+    echo "sys.usb.config     = $(getprop sys.usb.config)"
+    echo "sys.usb.ffs.ready  = $(getprop sys.usb.ffs.ready)"
+    echo "init.svc.adbd      = $(getprop init.svc.adbd)"
+    echo "init.svc.fastbootd = $(getprop init.svc.fastbootd)"
+    echo "ro.boot.slot_suffix= $(getprop ro.boot.slot_suffix)"
+}
+
+restore_adb() {
+    logger -t rc-mode "restoring adb usb config"
+    setprop sys.usb.config none
+    sleep 1
+    setprop sys.usb.config adb
+}
+
+# 先 none（解绑 UDC、停 adbd、清零 ffs.ready），再目标配置。
+# 必须脱离 adb shell 执行，否则 adbd 被停后 shell 收到 SIGHUP 会中断在两次 setprop 之间。
+switch_usb() {
+    target="$1"
+    if [ "$RC_MODE_DETACHED" != "1" ]; then
+        RC_MODE_DETACHED=1 nohup "$SELF" "$target" >/dev/null 2>&1 &
+        echo "已调度切换到 $target，adb 即将断开（USB 会重新枚举）"
+        exit 0
+    fi
+
+    logger -t rc-mode "switch usb: $(getprop sys.usb.config) -> $target"
+    setprop sys.usb.config none
+    sleep 1
+    setprop sys.usb.config "$target"
+
+    # 安全网：等目标状态就位，超时就退回 adb
+    n=0
+    while [ "$n" -lt "$TIMEOUT" ]; do
+        sleep 1
+        n=$((n + 1))
+        if [ "$(getprop sys.usb.state)" = "$target" ]; then
+            logger -t rc-mode "switch to $target ok (${n}s)"
+            exit 0
+        fi
+    done
+    logger -t rc-mode "switch to $target TIMEOUT after ${TIMEOUT}s, state=$(getprop sys.usb.state)"
+    restore_adb
+    exit 1
+}
+
+case "$1" in
+    fastboot|fbtd)
+        switch_usb fastboot
+        ;;
+    adb)
+        switch_usb adb
+        ;;
+    sideload)
+        logger -t rc-mode "rebooting into sideload"
+        echo "重启进入 sideload…"
+        setprop sys.powerctl "reboot,sideload"
+        ;;
+    rescue)
+        logger -t rc-mode "rebooting into rescue"
+        echo "重启进入 rescue…"
+        setprop sys.powerctl "reboot,rescue"
+        ;;
+    reboot)
+        setprop sys.powerctl "reboot"
+        ;;
+    poweroff)
+        setprop sys.powerctl "reboot,shutdown"
+        ;;
+    status)
+        status
+        ;;
+    *)
+        usage
+        ;;
+esac

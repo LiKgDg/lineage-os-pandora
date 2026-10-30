@@ -1,0 +1,8 @@
+<!-- system-only port: 只声明 system-sdk 要求，
+     不要求 framework 提供 vendor.qti.* / vendor.xiaomi.* 等厂商扩展 HAL。
+     stock vendor 的原始矩阵见 /root/pandora-stock/vintf/compatibility_matrix.xml -->
+<compatibility-matrix version="9.0" type="device">
+    <system-sdk>
+        <version>36</version>
+    </system-sdk>
+</compatibility-matrix>

@@ -1,0 +1,64 @@
+
+[1;36m== 1/6 检查工具[0m
+  [32m✓[0m platform-tools 就绪（fastboot version 37.0.1-15733141）
+
+[1;36m== 2/6 检查 fastboot 连接[0m
+  [32m✓[0m 设备: fd3af370	 fastboot
+  [32m✓[0m bootloader 已解锁
+  [32m✓[0m 当前槽位: a
+
+[1;36m== 3/6 检查构建产物[0m
+  init_boot.img             8388608 bytes  ✓
+  boot.img                100663296 bytes  ✓
+  vendor_boot.img         100663296 bytes  ✓
+  vbmeta.img                  65536 bytes  （大小不校验）
+  super.img              3983410272 bytes  （大小不校验）
+  recovery.img            104857600 bytes  ✓
+  dtbo.img                 33554432 bytes  ✓
+  vbmeta_system.img           65536 bytes  （大小不校验）
+
+[1;36m== 4/6 刷机计划[0m
+  fastboot flash boot           boot.img
+  fastboot flash init_boot      init_boot.img
+  fastboot flash vendor_boot    vendor_boot.img
+  fastboot flash dtbo           dtbo.img
+  fastboot flash recovery       recovery.img
+  fastboot flash vbmeta         vbmeta.img      ← 已内置 flags 3，无需 --disable-verification
+  fastboot flash vbmeta_system  vbmeta_system.img
+  fastboot flash super          super.img      ← 3.7 GiB，最慢的一步
+  fastboot -w                                  ← 清空 userdata
+  fastboot reboot
+
+[1;33m⚠ 这会清空全部用户数据（照片/应用/微信记录），不可恢复。[0m
+已指定 --yes，跳过交互确认。
+
+[1;36m== 5/6 刷入分区[0m
+  → boot           OK
+  → init_boot      OK
+  → vendor_boot    OK
+  → dtbo           OK
+  → recovery       OK
+  → vbmeta         OK
+  → vbmeta_system  OK
+  → super（3.71 GiB，请耐心等） OK
+  [32m✓[0m 已刷入 8 个分区
+
+[1;36m== 清空 userdata（fastboot -w）[0m
+  Erasing 'metadata'                                 OKAY [  4.048s]
+  Erase successful, but not automatically formatting.
+  File system type raw not supported.
+  Finished. Total time: 5.269s
+  [32m✓[0m userdata 已清空
+
+[1;36m== 6/6 重启到系统[0m
+  Rebooting                                          OKAY [  0.000s]
+  Finished. Total time: 0.000s
+  [32m✓[0m 已发送 reboot。首次开机需要 5-15 分钟（dex2oat 全量编译），请耐心等
+
+下一步验证（开机后）：
+  adb devices
+  adb shell getprop ro.build.version.release      # 期望 16
+  adb shell getprop ro.lineage.version
+  adb shell getprop ro.boot.verifiedbootstate     # orange（已解锁）
+  adb shell lshal | head -30                      # HAL 注册
+  adb shell "dmesg | grep -i avc"                 # SELinux 拒绝

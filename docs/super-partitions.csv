@@ -1,0 +1,17 @@
+partition,size_bytes,size_human,fs,group,attr,start_sector,start_byte,num_extents
+mi_ext_a,111198208,106.0 MiB,erofs,qti_dynamic_partitions_a,RO,20840448,10670309376,1
+mi_ext_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+odm_a,3547955200,3.30 GiB,erofs,qti_dynamic_partitions_a,RO,2048,1048576,1
+odm_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+product_a,4520914944,4.21 GiB,erofs,qti_dynamic_partitions_a,RO,6932480,3549429760,1
+product_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+system_a,912457728,870.2 MiB,erofs,qti_dynamic_partitions_a,RO,15763456,8070889472,1
+system_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+system_dlkm_a,16912384,16.1 MiB,erofs,qti_dynamic_partitions_a,RO,17547264,8984199168,1
+system_dlkm_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+system_ext_a,710426624,677.5 MiB,erofs,qti_dynamic_partitions_a,RO,17582080,9002024960,1
+system_ext_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+vendor_a,902373376,860.6 MiB,erofs,qti_dynamic_partitions_a,RO,18970624,9712959488,1
+vendor_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0
+vendor_dlkm_a,54063104,51.6 MiB,erofs,qti_dynamic_partitions_a,RO,20733952,10615783424,1
+vendor_dlkm_b,0,0 KiB,empty,qti_dynamic_partitions_b,RO,0,0,0

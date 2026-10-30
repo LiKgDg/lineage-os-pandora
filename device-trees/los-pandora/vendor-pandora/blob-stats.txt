@@ -1,0 +1,13 @@
+files copied : 5825
+symlinks     : 310
+total bytes  : 6133107727 (5.71 GiB)
+entries      : 6135
+
+apex         2
+apk          19
+etc          2187
+executable   361
+firmware     964
+jar          1
+shared_lib   2291
+symlink      310

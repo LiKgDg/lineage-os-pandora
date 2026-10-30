@@ -1,0 +1,6 @@
+# 只在仓库根忽略大产物；device 树里的 prebuilt/*.img 是构建必需，必须入库
+/recovery.img
+/*.img
+/*.zip
+*.log
+.DS_Store

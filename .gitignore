@@ -1,0 +1,54 @@
+# ── 大文件：一律不入库，走 GitHub Release ──────────────────────────
+# 镜像（system/system_ext/product/recovery/super）与 stock vbmeta
+*.img
+*.raw
+*.bin
+*.zip
+*.tgz
+*.zst
+*.tar
+
+# 镜像目录（由 make_super.sh / build_*.sh 产出，见 releases/README.md）
+sysonly/
+
+# OTA 原厂包（体积过大，且属小米分发物，请从官方渠道获取）
+pandora-ota_*.zip
+
+# ── 工具二进制 ────────────────────────────────────────────────────
+# Windows 平台工具，体积大且与平台绑定
+platform-tools/
+
+# ── 项目数据（WorkBuddy 工作区元数据，非项目内容）─────────────────
+.workbuddy-ai/
+
+# ── 解包与构建产物 ────────────────────────────────────────────────
+extracted/
+out/
+archives/
+firmware/
+stock-images/
+backup*/
+
+# ── vendor blob 实体（5+ GB，由 tools/gen_vendor_bp.py 重新生成）──
+# 只入库清单类文件（Android.bp / *.mk / proprietary-files.txt）
+vendor/*/*/proprietary/
+
+# ── 通用二进制，防止其它位置漏网 ─────────────────────────────────
+*.ko
+*.dtb
+*.a
+*.o
+*.so
+
+# ── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ── 编辑器与系统 ─────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~

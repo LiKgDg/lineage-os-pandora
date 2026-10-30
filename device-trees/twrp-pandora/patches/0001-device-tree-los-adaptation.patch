@@ -1,0 +1,929 @@
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/AndroidProducts.mk /root/android/lineage/device/xiaomi/pandora/AndroidProducts.mk
+--- azuma/AndroidProducts.mk	2026-10-29 08:02:38.974757395 +0800
++++ /root/android/lineage/device/xiaomi/pandora/AndroidProducts.mk	2026-10-29 08:04:43.737120243 +0800
+@@ -1,14 +1,6 @@
+-#
+-# Copyright (C) 2023 The Android Open Source Project
+-# Copyright (C) 2023 SebaUbuntu's TWRP device tree generator
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-#
+-
+ PRODUCT_MAKEFILES := \
+-    $(LOCAL_DIR)/twrp_pandora.mk
++    $(LOCAL_DIR)/lineage_pandora.mk
+ 
+ COMMON_LUNCH_CHOICES := \
+-    twrp_pandora-user \
+-    twrp_pandora-userdebug \
+-    twrp_pandora-eng
++    lineage_pandora-bp4a-userdebug \
++    lineage_pandora-bp4a-user
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/BoardConfig.mk /root/android/lineage/device/xiaomi/pandora/BoardConfig.mk
+--- azuma/BoardConfig.mk	2026-10-29 08:02:38.974757395 +0800
++++ /root/android/lineage/device/xiaomi/pandora/BoardConfig.mk	2026-10-29 11:18:32.928937944 +0800
+@@ -77,6 +77,10 @@
+ BOARD_BOOTIMAGE_PARTITION_SIZE := 100663296
+ BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
+ BOARD_INIT_BOOT_IMAGE_PARTITION_SIZE := 8388608
++# init_boot 也需要显式 header 版本，否则 soong 报
++# "header_version: must be set"（build/soong/fsgen/Android.bp:41）
++BOARD_INIT_BOOT_HEADER_VERSION := 4
++BOARD_MKBOOTIMG_INIT_ARGS += --header_version $(BOARD_INIT_BOOT_HEADER_VERSION)
+ BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 100663296
+ BOARD_DTBOIMG_PARTITION_SIZE := 33554432
+ 
+@@ -107,24 +111,24 @@
+ TARGET_COPY_OUT_VENDOR := vendor
+ 
+ # Recovery
+-BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
+-TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
++# 本机有独立的 recovery 分区（100 MB），ABL 从 recovery.img 里加载内核。
++# 若设为 true，镜像只有 ramdisk（kernel_size=0），recovery 无法启动。
++# 上游 TWRP 树设了 true，但 TWRP 的打包流程不同，LOS 这里必须自带内核。
++# BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
++# 不能带引号：soong 会把这个值直接写进 product_config JSON，
++# 带引号会生成 ""RGBX_8888"" 导致 merge_json 解析失败
++TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
+ BOARD_RAMDISK_USE_LZ4 := true
+ BOARD_RECOVERY_RAMDISK_COMPRESS := lz4
+ 
+ # Display
+-TARGET_SCREEN_DENSITY := 560
+-TARGET_SCREEN_HEIGHT := 2560
+-TARGET_SCREEN_WIDTH := 1440
++TARGET_SCREEN_DENSITY := 520
++TARGET_SCREEN_HEIGHT := 2656
++TARGET_SCREEN_WIDTH := 1220
+ TW_FRAMERATE := 60
+ 
+ # Crypto - Keymaster not available in recovery on this device; disable to avoid boot hang
+ TW_INCLUDE_CRYPTO := false
+-PLATFORM_VERSION := 16
+-PLATFORM_VERSION_LAST_STABLE := 16
+-PLATFORM_SECURITY_PATCH := 2025-10-01
+-VENDOR_SECURITY_PATCH := $(PLATFORM_SECURITY_PATCH)
+-BOOT_SECURITY_PATCH := $(PLATFORM_SECURITY_PATCH)
+ 
+ # Tool
+ TW_INCLUDE_REPACKTOOLS := true
+@@ -162,3 +166,14 @@
+ 
+ # Serialno
+ TW_USE_SERIALNO_PROPERTY_FOR_DEVICE_ID := true
++
++# ── LineageOS recovery ────────────────────────────────────────────────
++# recovery 的 init/fstab 放在 recovery/root/ 下，构建时会打进 ramdisk：
++#   recovery/root/init.recovery.qcom.rc
++#   recovery/root/init.recovery.usb.rc
++#   recovery/root/system/etc/recovery.fstab
++TARGET_RECOVERY_DEVICE_DIRS += device/xiaomi/pandora
++
++# UI 边距（像素，不乘 density）。1220 宽下 52px ≈ 4.3%，接近 16dp。
++TARGET_RECOVERY_UI_MARGIN_WIDTH := 52
++TARGET_RECOVERY_UI_MARGIN_HEIGHT := 52
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/README.md /root/android/lineage/device/xiaomi/pandora/README.md
+--- azuma/README.md	2026-10-29 08:02:38.974757395 +0800
++++ /root/android/lineage/device/xiaomi/pandora/README.md	1970-01-01 08:00:00.000000000 +0800
+@@ -1,141 +0,0 @@
+-# OFRP Device Tree for Xiaomi 17 Pro (pandora)
+-
+-参考：<https://github.com/0x7B00/OFRP>
+-
+-## 当前设备信息（来自刷机包）
+-
+-- Device: `pandora`
+-- Platform: `canoe`
+-- Android: `16` (`sdk 36`)
+-- Build: `OS3.0.30.0.WBLCNXM`
+-- Security patch: `2025-10-01`
+-
+-## 已知问题
+-
+-- 无法解密/挂载data分区
+-- 部分刷机包无法正常刷入
+-
+-## 已完成的重建内容
+-
+-- 该设备树在 `pandora/canoe` 已经成功开机并修复触控驱动和挂载外部otg
+-- `BoardConfig.mk` 切换到 boot header v4，并同步分区大小
+-- 预编译内核与设备树已替换：
+-  - `prebuilt/Image` <- `boot.img` kernel
+-  - `prebuilt/dtb` <- `vendor_boot.img` dtb
+-  - `prebuilt/dtbo.img` <- `dtbo.img`
+-- recovery 关键配置同步：
+-  - `recovery/root/system/etc/recovery.fstab`
+-  - `recovery/root/init.recovery.qcom.rc`
+-  - `recovery/root/system/etc/ueventd.rc`
+-
+-## 一键同步脚本
+-
+-固件更新后可以直接运行：
+-
+-```bash
+-./prepare_from_plg.sh
+-```
+-
+-可选指定固件目录：
+-
+-```bash
+-./prepare_from_plg.sh /path/to/rom/images
+-```
+-
+-## 获取完整源码（OrangeFox 12.1）
+-
+-按照 OrangeFox 官方 `sync` 工具拉取完整源码：
+-
+-```bash
+-mkdir -p ~/OrangeFox_sync
+-cd ~/OrangeFox_sync
+-git clone https://gitlab.com/OrangeFox/sync.git
+-cd sync
+-./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
+-```
+-
+-然后把本仓库放到：
+-
+-```bash
+-~/fox_12.1/device/xiaomi/pandora
+-```
+-
+-## 编译
+-
+-将仓库放到源码树 `device/xiaomi/pandora` 后，先做检查：
+-
+-```bash
+-ls -la device/xiaomi/pandora
+-grep -n "twrp_pandora" device/xiaomi/pandora/AndroidProducts.mk
+-```
+-
+-应能看到：
+-
+-- `twrp_pandora.mk`
+-- `BoardConfig.mk`
+-- `prebuilt/Image`、`prebuilt/dtb`、`prebuilt/dtbo.img`
+-- `AndroidProducts.mk` 里有 `twrp_pandora-*`
+-
+-`fox_12.1` 分支下必须保证：
+-
+-```makefile
+-PRODUCT_TARGET_VNDK_VERSION := 32
+-PRODUCT_SHIPPING_API_LEVEL := 32
+-```
+-
+-否则会报：
+-
+-```text
+-BOARD_SYSTEMSDK_VERSIONS (32) must all be greater than or equal to PRODUCT_SHIPPING_API_LEVEL (36)
+-```
+-
+-`fox_12.1`（新版 OrangeFox）里 `FOX_VERSION` 已废弃，需改为：
+-
+-```bash
+-export FOX_MAINTAINER_PATCH_VERSION=你的维护者补丁版本号
+-```
+-
+-建议编译顺序：
+-
+-```bash
+-. build/envsetup.sh
+-lunch twrp_pandora-eng
+-mka bootimage
+-```
+-
+-如 `bootimage` 报目标不匹配，再尝试：
+-
+-```bash
+-mka recoveryimage
+-```
+-
+-## GitHub Action（云编译）
+-
+-可继续使用项目根目录下的 OrangeFox Action Builder，按下面参数填写：
+-
+-参考：
+-
+-- `https://github.com/ymdzq/OrangeFox-Action-Builder`
+-修改版：
+--<https://github.com/AzumaChiaki/device-xiaomi-pandora>
+-操作流程：
+-
+-1. Fork 上面的 Action Builder 仓库到你自己的账号
+-2. 进入你 Fork 后仓库的 `Actions`
+-3. 选择 `OrangeFox - Build`
+-4. 点击 `Run workflow`，按下方参数填写
+-
+-- OrangeFox Branch: `14.1`
+-- Custom Recovery Tree: `https://github.com/AzumaChiaki/device-xiaomi-pandora`
+-- Custom Recovery Tree Branch: `fox_12.1-a14`
+-- Specify your device path: `device/xiaomi/pandora`
+-- Specify your Device Codename: `pandora`
+-- Specify your Build Target: `boot`
+-
+-如果 `boot` 失败且日志提示目标不匹配，再把 Build Target 改为 `recovery` 重跑。
+-
+-当前 workflow 会在同步 `fox_14.1` 源码后自动执行 `patches/fox_14.1/apply_a16_compat.sh`，先为 `cts/tests/tests/os/assets/platform_releases.txt` 和 `platform_versions.txt` 补上 `16`，以解决 A16 设备树在 14.1 基线上的首个阻塞报错。
+-
+-如果后续云编译仍然因为 Android 16 兼容问题失败，优先继续扩展这一个补丁入口，而不是把兼容逻辑分散到设备树和 workflow 的其他步骤里。
+-
+-建议在 Action 前先确认仓库里已包含最新 `plg/images` 提取结果（或本地先跑过一次 `./prepare_from_plg.sh` 再提交）。
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/build_local.sh /root/android/lineage/device/xiaomi/pandora/build_local.sh
+--- azuma/build_local.sh	2026-10-29 08:02:38.974757395 +0800
++++ /root/android/lineage/device/xiaomi/pandora/build_local.sh	1970-01-01 08:00:00.000000000 +0800
+@@ -1,207 +0,0 @@
+-#!/usr/bin/env bash
+-if [[ -z "${BASH_VERSION:-}" ]]; then
+-    exec bash "$0" "$@"
+-fi
+-set -euo pipefail
+-
+-SOURCE_FILE="${BASH_SOURCE[0]:-$0}"
+-SCRIPT_DIR="$(cd "$(dirname "${SOURCE_FILE}")" && pwd)"
+-
+-MANIFEST_BRANCH="14.1"
+-WORK_ROOT="${HOME}/orangefox-local"
+-SOURCE_ROOT=""
+-SYNC_REPO_URL="https://gitlab.com/OrangeFox/sync.git"
+-DEVICE_TREE_DIR="${SCRIPT_DIR}"
+-DEVICE_PATH="device/xiaomi/pandora"
+-LUNCH_TARGET="twrp_pandora-eng"
+-BUILD_TARGET="recoveryimage"
+-JOBS="${NPROC:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 8)}"
+-CCACHE_SIZE="80G"
+-INSTALL_DEPS=0
+-RUN_SYNC=1
+-RUN_PREPARE=1
+-RUN_CLOBBER=0
+-IMAGES_DIR=""
+-
+-usage() {
+-    cat <<'EOF'
+-Usage: ./build_local.sh [options]
+-
+-Options:
+-  --branch <12.1|14.1>         OrangeFox manifest branch (default: 14.1)
+-  --work-root <path>           Work directory root (default: ~/orangefox-local)
+-  --source-root <path>         Explicit source directory (overrides --work-root)
+-  --device-tree <path>         OFRP device tree path (default: current repo)
+-  --device-path <path>         Device path in source tree (default: device/xiaomi/pandora)
+-  --lunch <target>             Lunch target (default: twrp_pandora-eng)
+-  --target <make-target>       Build target (default: recoveryimage)
+-  --jobs <n>                   Parallel jobs (default: host CPU threads)
+-  --ccache-size <size>         ccache max size (default: 80G)
+-  --images-dir <path>          Firmware images dir for prepare_from_plg.sh
+-  --install-deps               Install dependencies automatically (Arch/Ubuntu)
+-  --no-sync                    Skip source sync (use existing source tree)
+-  --no-prepare                 Skip prepare_from_plg.sh
+-  --clobber                    Run mka clobber before build
+-  -h, --help                   Show this help
+-
+-Examples:
+-  ./build_local.sh --install-deps --branch 14.1 --target recoveryimage
+-  ./build_local.sh --no-sync --source-root ~/fox_14.1 --jobs 16
+-EOF
+-}
+-
+-log() {
+-    printf '\n[%s] %s\n' "$(date '+%F %T')" "$*"
+-}
+-
+-die() {
+-    echo "ERROR: $*" >&2
+-    exit 1
+-}
+-
+-while [[ $# -gt 0 ]]; do
+-    case "$1" in
+-        --branch) MANIFEST_BRANCH="${2:?missing value}"; shift 2 ;;
+-        --work-root) WORK_ROOT="${2:?missing value}"; shift 2 ;;
+-        --source-root) SOURCE_ROOT="${2:?missing value}"; shift 2 ;;
+-        --device-tree) DEVICE_TREE_DIR="${2:?missing value}"; shift 2 ;;
+-        --device-path) DEVICE_PATH="${2:?missing value}"; shift 2 ;;
+-        --lunch) LUNCH_TARGET="${2:?missing value}"; shift 2 ;;
+-        --target) BUILD_TARGET="${2:?missing value}"; shift 2 ;;
+-        --jobs) JOBS="${2:?missing value}"; shift 2 ;;
+-        --ccache-size) CCACHE_SIZE="${2:?missing value}"; shift 2 ;;
+-        --images-dir) IMAGES_DIR="${2:?missing value}"; shift 2 ;;
+-        --install-deps) INSTALL_DEPS=1; shift ;;
+-        --no-sync) RUN_SYNC=0; shift ;;
+-        --no-prepare) RUN_PREPARE=0; shift ;;
+-        --clobber) RUN_CLOBBER=1; shift ;;
+-        -h|--help) usage; exit 0 ;;
+-        *) die "unknown option: $1" ;;
+-    esac
+-done
+-
+-if [[ -z "${SOURCE_ROOT}" ]]; then
+-    SOURCE_ROOT="${WORK_ROOT}/fox_${MANIFEST_BRANCH}"
+-fi
+-
+-if [[ -z "${IMAGES_DIR}" ]]; then
+-    IMAGES_DIR="${DEVICE_TREE_DIR}/plg/images"
+-fi
+-
+-need_cmd() {
+-    command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
+-}
+-
+-install_dependencies() {
+-    [[ "${INSTALL_DEPS}" -eq 1 ]] || return 0
+-    [[ -f /etc/os-release ]] || die "--install-deps requires Linux with /etc/os-release"
+-    # shellcheck disable=SC1091
+-    source /etc/os-release
+-
+-    if [[ "${ID:-}" == "arch" ]]; then
+-        log "Installing dependencies via pacman (Arch Linux)"
+-        sudo pacman -Syu --needed --noconfirm \
+-            base-devel git repo python python-pip unzip zip rsync ccache \
+-            bc bison flex gperf lz4 zstd cpio xmlstarlet openssl libxml2 \
+-            perl-switch perl-xml-simple inetutils
+-    elif [[ "${ID:-}" == "ubuntu" || "${ID_LIKE:-}" == *"ubuntu"* || "${ID_LIKE:-}" == *"debian"* ]]; then
+-        log "Installing dependencies via apt (Ubuntu/Debian)"
+-        sudo apt-get update
+-        sudo apt-get install -y \
+-            git-core repo python3 python3-pip unzip zip rsync ccache \
+-            bc bison build-essential curl flex g++-multilib gcc-multilib gperf \
+-            liblz4-tool libncurses5-dev libncurses5 libxml2-utils lz4 zstd cpio \
+-            libssl-dev openjdk-11-jdk
+-    else
+-        die "unsupported distro for --install-deps: ${ID:-unknown}"
+-    fi
+-}
+-
+-sync_sources() {
+-    [[ "${RUN_SYNC}" -eq 1 ]] || return 0
+-    mkdir -p "${WORK_ROOT}"
+-    local sync_dir="${WORK_ROOT}/sync"
+-
+-    if [[ ! -d "${sync_dir}/.git" ]]; then
+-        log "Cloning OrangeFox sync utility"
+-        git clone "${SYNC_REPO_URL}" "${sync_dir}"
+-    else
+-        log "Updating OrangeFox sync utility"
+-        git -C "${sync_dir}" pull --ff-only
+-    fi
+-
+-    log "Syncing OrangeFox source branch ${MANIFEST_BRANCH} to ${SOURCE_ROOT}"
+-    (
+-        cd "${sync_dir}"
+-        bash "./orangefox_sync.sh" --branch "${MANIFEST_BRANCH}" --path "${SOURCE_ROOT}"
+-    )
+-}
+-
+-copy_device_tree() {
+-    [[ -d "${DEVICE_TREE_DIR}" ]] || die "device tree path not found: ${DEVICE_TREE_DIR}"
+-    local target_dir="${SOURCE_ROOT}/${DEVICE_PATH}"
+-    mkdir -p "${target_dir}"
+-
+-    log "Syncing device tree into source: ${target_dir}"
+-    rsync -a --delete \
+-        --exclude ".git" \
+-        --exclude "out" \
+-        --exclude ".repo" \
+-        --exclude ".idea" \
+-        --exclude ".vscode" \
+-        "${DEVICE_TREE_DIR}/" "${target_dir}/"
+-}
+-
+-run_prepare() {
+-    [[ "${RUN_PREPARE}" -eq 1 ]] || return 0
+-    local target_dir="${SOURCE_ROOT}/${DEVICE_PATH}"
+-    [[ -x "${target_dir}/prepare_from_plg.sh" ]] || die "prepare_from_plg.sh not executable in ${target_dir}"
+-    [[ -d "${IMAGES_DIR}" ]] || die "images dir not found: ${IMAGES_DIR}"
+-
+-    log "Running prepare_from_plg.sh with images: ${IMAGES_DIR}"
+-    bash "${target_dir}/prepare_from_plg.sh" "${IMAGES_DIR}"
+-}
+-
+-build_recovery() {
+-    [[ -f "${SOURCE_ROOT}/build/envsetup.sh" ]] || die "build/envsetup.sh not found: ${SOURCE_ROOT}"
+-    need_cmd bash
+-    need_cmd repo
+-    need_cmd rsync
+-    need_cmd python3
+-    need_cmd lz4
+-    need_cmd cpio
+-    need_cmd ccache
+-
+-    log "Configuring ccache (${CCACHE_SIZE})"
+-    export USE_CCACHE=1
+-    ccache -M "${CCACHE_SIZE}" >/dev/null
+-
+-    local build_cmd="
+-        set -euo pipefail
+-        cd '${SOURCE_ROOT}'
+-        source build/envsetup.sh
+-        lunch '${LUNCH_TARGET}'
+-        if [[ '${RUN_CLOBBER}' -eq 1 ]]; then
+-            mka clobber
+-        fi
+-        mka -j'${JOBS}' '${BUILD_TARGET}'
+-    "
+-
+-    log "Starting build: lunch=${LUNCH_TARGET}, target=${BUILD_TARGET}, jobs=${JOBS}"
+-    bash -lc "${build_cmd}"
+-}
+-
+-print_artifacts() {
+-    local product_out="${SOURCE_ROOT}/out/target/product/pandora"
+-    log "Build finished. Common artifact locations:"
+-    echo "  - ${product_out}/recovery.img"
+-    echo "  - ${product_out}/boot.img"
+-    echo "  - ${product_out}/OrangeFox*.zip"
+-}
+-
+-install_dependencies
+-sync_sources
+-copy_device_tree
+-run_prepare
+-build_recovery
+-print_artifacts
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/device.mk /root/android/lineage/device/xiaomi/pandora/device.mk
+--- azuma/device.mk	2026-10-29 08:02:38.974757395 +0800
++++ /root/android/lineage/device/xiaomi/pandora/device.mk	2026-10-29 11:23:38.274659839 +0800
+@@ -1,31 +1,31 @@
+-#
+-# Copyright (C) 2023 The Android Open Source Project
+-# Copyright (C) 2023 SebaUbuntu's TWRP device tree generator
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-#
+-
+ LOCAL_PATH := device/xiaomi/pandora
+ 
+-# Dynamic Partitions
+ PRODUCT_USE_DYNAMIC_PARTITIONS := true
+-
+-# Fastbootd
+-TW_INCLUDE_FASTBOOTD := true
+-
+-# API
+-# fox_12.1 trees expose BOARD_SYSTEMSDK_VERSIONS=32, so shipping api must not exceed 32.
+-PRODUCT_TARGET_VNDK_VERSION := 32
+-PRODUCT_SHIPPING_API_LEVEL := 32
+-
+-# A/B
+ ENABLE_VIRTUAL_AB := true
+ 
+-# Boot Control HAL
++# recovery 侧 bootctrl HAL。缺了它 update_engine 会报
++# "Error getting bootctrl v1.0 module" 并中止 OTA。
+ PRODUCT_PACKAGES += \
+     android.hardware.boot@1.1-impl-qti.recovery \
+     bootctrl.canoe.recovery
+ 
+-# Soong namespaces
++# adb sideload 的实际执行者。recovery 二进制里硬编码了
++# /system/bin/update_engine_sideload（bootable/recovery/install/install.cpp:330），
++# 但 AOSP 只在 cuttlefish 的 device.mk 里把它加入 PRODUCT_PACKAGES，
++# 真机产品必须自己加，否则 recovery 里一按 Apply from ADB 就找不到可执行文件。
++PRODUCT_PACKAGES += \
++    update_engine_sideload
++
+ PRODUCT_SOONG_NAMESPACES += \
+     $(LOCAL_PATH)
++
++PRODUCT_PROPERTY_OVERRIDES += \
++    ro.adb.secure=0 \
++    ro.boot.dynamic_partitions=true \
++    vendor.gatekeeper.disable_spu=true \
++    ro.dynamic.full_size=13421772800
++
++# 屏幕 1220x2656 / density 520 → recovery UI 边距 52px
++PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
++    ro.recovery.ui.margin_width=52 \
++    ro.recovery.ui.margin_height=52
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/lineage_pandora.mk /root/android/lineage/device/xiaomi/pandora/lineage_pandora.mk
+--- azuma/lineage_pandora.mk	1970-01-01 08:00:00.000000000 +0800
++++ /root/android/lineage/device/xiaomi/pandora/lineage_pandora.mk	2026-10-29 08:21:19.770828021 +0800
+@@ -0,0 +1,11 @@
++# LineageOS product config for Xiaomi 17 Pro (pandora / canoe)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
++$(call inherit-product, device/xiaomi/pandora/device.mk)
++
++PRODUCT_DEVICE := pandora
++PRODUCT_NAME := lineage_pandora
++PRODUCT_BRAND := Xiaomi
++PRODUCT_MODEL := 25098PN5AC
++PRODUCT_MANUFACTURER := Xiaomi
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/prepare_from_plg.sh /root/android/lineage/device/xiaomi/pandora/prepare_from_plg.sh
+--- azuma/prepare_from_plg.sh	2026-10-29 08:02:39.127164700 +0800
++++ /root/android/lineage/device/xiaomi/pandora/prepare_from_plg.sh	1970-01-01 08:00:00.000000000 +0800
+@@ -1,245 +0,0 @@
+-#!/usr/bin/env bash
+-set -euo pipefail
+-
+-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+-IMAGES_DIR="${1:-$ROOT_DIR/plg/images}"
+-
+-need_file() {
+-    local file="$1"
+-    if [[ ! -f "$file" ]]; then
+-        echo "missing required file: $file" >&2
+-        exit 1
+-    fi
+-}
+-
+-need_cmd() {
+-    local cmd="$1"
+-    if ! command -v "$cmd" >/dev/null 2>&1; then
+-        echo "missing required command: $cmd" >&2
+-        exit 1
+-    fi
+-}
+-
+-need_cmd python3
+-need_cmd lz4
+-need_cmd cpio
+-
+-need_file "$IMAGES_DIR/boot.img"
+-need_file "$IMAGES_DIR/vendor_boot.img"
+-need_file "$IMAGES_DIR/recovery.img"
+-need_file "$IMAGES_DIR/dtbo.img"
+-
+-TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pandora-prep.XXXXXX")"
+-trap 'rm -rf "$TMP_DIR"' EXIT
+-
+-python3 - "$IMAGES_DIR/boot.img" "$IMAGES_DIR/vendor_boot.img" "$IMAGES_DIR/recovery.img" "$TMP_DIR" <<'PY'
+-import pathlib
+-import struct
+-import sys
+-
+-boot_img = pathlib.Path(sys.argv[1])
+-vendor_boot_img = pathlib.Path(sys.argv[2])
+-recovery_img = pathlib.Path(sys.argv[3])
+-out_dir = pathlib.Path(sys.argv[4])
+-
+-
+-def align(value: int, page: int) -> int:
+-    return ((value + page - 1) // page) * page
+-
+-
+-def parse_boot(path: pathlib.Path):
+-    blob = path.read_bytes()
+-    if blob[:8] != b"ANDROID!":
+-        raise SystemExit(f"{path} is not an Android boot image")
+-    kernel_size, ramdisk_size, os_version, header_size = struct.unpack_from("<IIII", blob, 8)
+-    header_version = struct.unpack_from("<I", blob, 40)[0]
+-    cmdline = blob[44:44 + 1536].split(b"\x00", 1)[0].decode("ascii", "ignore")
+-    page = 4096
+-    header_aligned = align(header_size, page)
+-    kernel_off = header_aligned
+-    ramdisk_off = kernel_off + align(kernel_size, page)
+-    return {
+-        "blob": blob,
+-        "kernel_size": kernel_size,
+-        "ramdisk_size": ramdisk_size,
+-        "os_version": os_version,
+-        "header_size": header_size,
+-        "header_version": header_version,
+-        "cmdline": cmdline,
+-        "kernel_off": kernel_off,
+-        "ramdisk_off": ramdisk_off,
+-    }
+-
+-
+-boot = parse_boot(boot_img)
+-if boot["kernel_size"] <= 0:
+-    raise SystemExit("boot.img does not contain a kernel payload")
+-(out_dir / "Image").write_bytes(
+-    boot["blob"][boot["kernel_off"]:boot["kernel_off"] + boot["kernel_size"]]
+-)
+-
+-recovery = parse_boot(recovery_img)
+-if recovery["ramdisk_size"] <= 0:
+-    raise SystemExit("recovery.img does not contain a ramdisk payload")
+-(out_dir / "recovery_ramdisk.lz4").write_bytes(
+-    recovery["blob"][recovery["ramdisk_off"]:recovery["ramdisk_off"] + recovery["ramdisk_size"]]
+-)
+-
+-vendor_blob = vendor_boot_img.read_bytes()
+-if vendor_blob[:8] != b"VNDRBOOT":
+-    raise SystemExit("vendor_boot.img is not a vendor boot image")
+-
+-header_version = struct.unpack_from("<I", vendor_blob, 8)[0]
+-if header_version < 4:
+-    raise SystemExit(f"unsupported vendor boot header version: {header_version}")
+-
+-page_size, kernel_addr, ramdisk_addr, vendor_ramdisk_size = struct.unpack_from("<IIII", vendor_blob, 12)
+-cmdline = vendor_blob[28:28 + 2048].split(b"\x00", 1)[0].decode("ascii", "ignore")
+-offset = 28 + 2048
+-tags_addr = struct.unpack_from("<I", vendor_blob, offset)[0]
+-offset += 4
+-board_name = vendor_blob[offset:offset + 16].split(b"\x00", 1)[0].decode("ascii", "ignore")
+-offset += 16
+-header_size = struct.unpack_from("<I", vendor_blob, offset)[0]
+-offset += 4
+-dtb_size = struct.unpack_from("<I", vendor_blob, offset)[0]
+-offset += 4
+-dtb_addr = struct.unpack_from("<Q", vendor_blob, offset)[0]
+-offset += 8
+-table_size, table_num, table_entry_size, bootconfig_size = struct.unpack_from("<IIII", vendor_blob, offset)
+-
+-header_aligned = align(header_size, page_size)
+-vendor_ramdisk_aligned = align(vendor_ramdisk_size, page_size)
+-dtb_off = header_aligned + vendor_ramdisk_aligned
+-table_off = dtb_off + align(dtb_size, page_size)
+-bootconfig_off = table_off + align(table_size, page_size)
+-
+-(out_dir / "vendor_ramdisk.lz4").write_bytes(
+-    vendor_blob[header_aligned:header_aligned + vendor_ramdisk_size]
+-)
+-(out_dir / "dtb.img").write_bytes(vendor_blob[dtb_off:dtb_off + dtb_size])
+-(out_dir / "bootconfig.txt").write_bytes(vendor_blob[bootconfig_off:bootconfig_off + bootconfig_size])
+-
+-meta = "\n".join([
+-    f"boot_header_version={boot['header_version']}",
+-    f"boot_kernel_size={boot['kernel_size']}",
+-    f"boot_ramdisk_size={boot['ramdisk_size']}",
+-    f"boot_header_size={boot['header_size']}",
+-    f"boot_cmdline={boot['cmdline']}",
+-    f"vendor_boot_header_version={header_version}",
+-    f"vendor_boot_page_size={page_size}",
+-    f"vendor_boot_kernel_addr=0x{kernel_addr:x}",
+-    f"vendor_boot_ramdisk_addr=0x{ramdisk_addr:x}",
+-    f"vendor_boot_ramdisk_size={vendor_ramdisk_size}",
+-    f"vendor_boot_cmdline={cmdline}",
+-    f"vendor_boot_tags_addr=0x{tags_addr:x}",
+-    f"vendor_boot_board_name={board_name}",
+-    f"vendor_boot_header_size={header_size}",
+-    f"vendor_boot_dtb_size={dtb_size}",
+-    f"vendor_boot_dtb_addr=0x{dtb_addr:x}",
+-    f"vendor_boot_table_size={table_size}",
+-    f"vendor_boot_table_num={table_num}",
+-    f"vendor_boot_table_entry_size={table_entry_size}",
+-    f"vendor_boot_bootconfig_size={bootconfig_size}",
+-    f"vendor_boot_dtb_offset={dtb_off}",
+-    f"vendor_boot_table_offset={table_off}",
+-    f"vendor_boot_bootconfig_offset={bootconfig_off}",
+-])
+-(out_dir / "extract.meta").write_text(meta + "\n")
+-PY
+-
+-lz4 -d -f "$TMP_DIR/vendor_ramdisk.lz4" "$TMP_DIR/vendor_ramdisk.cpio" >/dev/null
+-mkdir -p "$TMP_DIR/vendor_ramdisk"
+-( cd "$TMP_DIR/vendor_ramdisk" && cpio -idmu < "$TMP_DIR/vendor_ramdisk.cpio" >/dev/null 2>&1 )
+-
+-lz4 -d -f "$TMP_DIR/recovery_ramdisk.lz4" "$TMP_DIR/recovery_ramdisk.cpio" >/dev/null
+-mkdir -p "$TMP_DIR/recovery_ramdisk"
+-( cd "$TMP_DIR/recovery_ramdisk" && cpio -idmu < "$TMP_DIR/recovery_ramdisk.cpio" >/dev/null 2>&1 )
+-
+-cp "$TMP_DIR/Image" "$ROOT_DIR/prebuilt/Image"
+-cp "$TMP_DIR/dtb.img" "$ROOT_DIR/prebuilt/dtb"
+-cp "$IMAGES_DIR/dtbo.img" "$ROOT_DIR/prebuilt/dtbo.img"
+-cp "$TMP_DIR/vendor_ramdisk/first_stage_ramdisk/fstab.qcom" "$ROOT_DIR/recovery/root/system/etc/recovery.fstab"
+-# Ensure removable storage (USB OTG, SD card) entries exist for vold auto-mount
+-python3 - "$ROOT_DIR/recovery/root/system/etc/recovery.fstab" <<'FSTAB_PY'
+-import sys
+-from pathlib import Path
+-fstab = Path(sys.argv[1])
+-content = fstab.read_text()
+-removable = """
+-# Removable storage: vold auto-discovers via uevents when device is plugged in
+-/devices/platform/soc/8804000.sdhci/mmc_host*           /storage/sdcard1       vfat    nosuid,nodev                                         wait,voldmanaged=sdcard1:auto,encryptable=footer
+-/devices/platform/soc/*.ssusb/*.dwc3/xhci-hcd.*.auto*   /storage/usbotg        vfat    nosuid,nodev                                         wait,voldmanaged=usbotg:auto
+-"""
+-if "voldmanaged=usbotg:auto" not in content:
+-    fstab.write_text(content.rstrip() + removable)
+-FSTAB_PY
+-cp "$TMP_DIR/recovery_ramdisk/init.recovery.qcom.rc" "$ROOT_DIR/recovery/root/init.recovery.qcom.rc"
+-cp "$TMP_DIR/recovery_ramdisk/system/etc/ueventd.rc" "$ROOT_DIR/recovery/root/system/etc/ueventd.rc"
+-
+-# Ensure recovery init keeps touchscreen hooks when init.recovery.qcom.rc is refreshed from stock ramdisk.
+-python3 - "$ROOT_DIR/recovery/root/init.recovery.qcom.rc" <<'PY'
+-import sys
+-from pathlib import Path
+-
+-rc = Path(sys.argv[1])
+-content = rc.read_text()
+-
+-trigger = """
+-on late-init
+-    # Mount vendor_dlkm and load the minimal touch modules early.
+-    start load_touch_modules
+-"""
+-
+-trigger_postinit = """
+-on property:orangefox.postinit.status=1
+-    # Run a second pass after OrangeFox startup in case the first pass raced.
+-    start load_touch_modules
+-"""
+-
+-service_touch = """
+-service load_touch_modules /system/bin/sh /sbin/load_touch_modules.sh
+-    class core
+-    user root
+-    group root system input
+-    seclabel u:r:recovery:s0
+-    oneshot
+-"""
+-
+-updated = content
+-if "start load_touch_modules" not in updated:
+-    updated = updated.rstrip() + "\n\n" + trigger.strip("\n") + "\n"
+-if "on property:orangefox.postinit.status=1" not in updated:
+-    updated = updated.rstrip() + "\n\n" + trigger_postinit.strip("\n") + "\n"
+-if "service load_touch_modules " not in updated:
+-    updated = updated.rstrip() + "\n" + service_touch.strip() + "\n"
+-
+-if updated != content:
+-    rc.write_text(updated)
+-PY
+-
+-# Drop malformed line copied from stock ueventd that causes parsing to stop early.
+-python3 - "$ROOT_DIR/recovery/root/vendor/ueventd.rc" <<'PY'
+-import sys
+-from pathlib import Path
+-
+-ueventd = Path(sys.argv[1])
+-if not ueventd.exists():
+-    raise SystemExit(0)
+-
+-lines = ueventd.read_text().splitlines()
+-filtered = [line for line in lines if line.strip() != "*/"]
+-if filtered != lines:
+-    ueventd.write_text("\n".join(filtered) + "\n")
+-PY
+-
+-echo "Prepared files from $IMAGES_DIR"
+-echo "  - prebuilt/Image"
+-echo "  - prebuilt/dtb"
+-echo "  - prebuilt/dtbo.img"
+-echo "  - recovery/root/system/etc/recovery.fstab"
+-echo "  - recovery/root/init.recovery.qcom.rc"
+-echo "  - recovery/root/system/etc/ueventd.rc"
+-echo
+-echo "Extract metadata:"
+-cat "$TMP_DIR/extract.meta"
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/twrp_pandora.mk /root/android/lineage/device/xiaomi/pandora/twrp_pandora.mk
+--- azuma/twrp_pandora.mk	2026-10-29 08:02:39.134498033 +0800
++++ /root/android/lineage/device/xiaomi/pandora/twrp_pandora.mk	1970-01-01 08:00:00.000000000 +0800
+@@ -1,30 +0,0 @@
+-#
+-# Copyright (C) 2023 The Android Open Source Project
+-# Copyright (C) 2023 SebaUbuntu's TWRP device tree generator
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-#
+-
+-# Release name
+-PRODUCT_RELEASE_NAME := pandora
+-
+-# 引用默认的编译配置文件，core_64_bit必须先于其他引用，否则不生效
+-$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
+-$(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
+-
+-# Enable virtual A/B OTA
+-$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
+-
+-# Inherit from pandora device
+-$(call inherit-product, device/xiaomi/pandora/device.mk)
+-
+-# Inherit some common TWRP stuff.
+-$(call inherit-product, vendor/twrp/config/common.mk)
+-
+-# Device identifier. This must come after all inclusions
+-PRODUCT_DEVICE := pandora
+-PRODUCT_NAME := twrp_pandora
+-PRODUCT_BRAND := Xiaomi
+-PRODUCT_MODEL := 25098PN5AC
+-PRODUCT_MANUFACTURER := Xiaomi
+-#PRODUCT_RELEASE_NAME := Xiaomi 17 Pro
+diff -ruN '--exclude=.git' '--exclude=*.DS_Store' azuma/vendorsetup.sh /root/android/lineage/device/xiaomi/pandora/vendorsetup.sh
+--- azuma/vendorsetup.sh	2026-10-29 08:02:39.134498033 +0800
++++ /root/android/lineage/device/xiaomi/pandora/vendorsetup.sh	1970-01-01 08:00:00.000000000 +0800
+@@ -1,131 +0,0 @@
+-#
+-# Copyright (C) 2023 The Android Open Source Project
+-# Copyright (C) 2023 SebaUbuntu's TWRP device tree generator
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-#
+-# 关于橙狐变量详见 fox_12.1/vendor/recovery/orangefox_build_vars.txt
+-
+-	export TW_DEFAULT_LANGUAGE="zh_CN"
+-	export LC_ALL="C"
+-	export ALLOW_MISSING_DEPENDENCIES=true
+-
+-	echo -e "\x1b[96mpandora: 开始添加OrangeFox Vars...\x1b[m"
+-	## 构建信息
+-	# 设置显示在关于页面里的维护人员名称
+-	export OF_MAINTAINER=ymdzq
+-	# 维护者补丁版本号（FOX_VERSION 已废弃）
+-	export FOX_MAINTAINER_PATCH_VERSION=$(date +%y%m%d)
+-	# 当你需要标记出这个recovery是一个特殊版本时使用
+-	# export FOX_VARIANT=MIUI
+-
+-	## 添加功能
+-	# 使用完整版getprop命令
+-	export FOX_REPLACE_TOOLBOX_GETPROP=1
+-	# 支持tar命令
+-	export FOX_USE_TAR_BINARY=1
+-	# 支持sed命令
+-	export FOX_USE_SED_BINARY=1
+-	# 使用bash代替sh和ash
+-	export FOX_USE_BASH_SHELL=1
+-	export FOX_ASH_IS_BASH=1
+-	# 添加橙狐的app管理器功能
+-	export FOX_ENABLE_APP_MANAGER=1
+-	# 使用完整版grep命令
+-	export FOX_USE_GREP_BINARY=1
+-	# 支持lzma, xz命令
+-	export FOX_USE_XZ_UTILS=1
+-	# 使用橙狐编译的NANO编辑器
+-	export FOX_USE_NANO_EDITOR=1
+-	# 添加phhusson's lptools工具
+-	export OF_ENABLE_LPTOOLS=1
+-
+-	## 添加橙狐特殊处理
+-	# 设定recovery、system、vendor、boot分区路径
+-	# export FOX_RECOVERY_INSTALL_PARTITION="/dev/block/bootdevice/by-name/recovery"
+-	export FOX_RECOVERY_SYSTEM_PARTITION="/dev/block/mapper/system"
+-	export FOX_RECOVERY_VENDOR_PARTITION="/dev/block/mapper/vendor"
+-	# export FOX_RECOVERY_BOOT_PARTITION="/dev/block/bootdevice/by-name/boot"
+-
+-	# 不生成recovery的zip刷机包
+-	# export FOX_DISABLE_UPDATEZIP=1
+-	# Keymaster unavailable in recovery; skip FBE to avoid boot hang
+-	export OF_SKIP_FBE_DECRYPTION=1
+-	# 当ROM大于等于指定安卓SDK等级时，跳过FBE解密流程
+-	# export OF_SKIP_FBE_DECRYPTION_SDKVERSION=31
+-	# 防止橙狐在解密后重新运行自启动进程
+-	export OF_NO_RELOAD_AFTER_DECRYPTION=1
+-	# 禁用检查rom里的compatibility.zip
+-	export OF_NO_TREBLE_COMPATIBILITY_CHECK=1
+-	# 删除zip包里的AromaFM（有的设备用不了）
+-	export FOX_DELETE_AROMAFM=1
+-
+-	## 硬件功能设定
+-	# 没有绿色led
+-	export OF_USE_GREEN_LED=0
+-	# 关闭闪光灯功能
+-	# export OF_FLASHLIGHT_ENABLE=0
+-	# 自定义闪光灯路径，修复闪光灯
+-	# export OF_FL_PATH1=/sys/class/leds/led:torch_0
+-	# export OF_FL_PATH2=/sys/class/leds/led:torch_1
+-
+-	## 界面显示设定
+-	# 设置屏幕高度，状态栏高度，状态栏左右边距
+-	# 由于橙狐默认屏幕比例是16：9,所以应设置屏幕高度为屏幕比例换算成n：9之后，n*120
+-	export OF_SCREEN_H=2560
+-	# 状态栏高度（默认72像素，刘海屏设备按需设置）
+-	# export OF_STATUS_H=60
+-	# 状态栏左右避让宽度（默认20像素，顶部圆角设备按需设置）
+-	# export OF_STATUS_INDENT_LEFT=48
+-	# export OF_STATUS_INDENT_RIGHT=48
+-	# 添加黑色状态栏（隐藏刘海）选项
+-	# export OF_HIDE_NOTCH=1
+-	# 由于有刘海遮挡，设置时钟位置为只能显示在左侧或右侧
+-	# export OF_CLOCK_POS=1
+-	# 禁止禁用导航栏
+-	export OF_ALLOW_DISABLE_NAVBAR=0
+-
+-	## 调整刷入zip刷机包时刷机脚本要检测的相关属性
+-	# 设置一个很老的build时间，用于解决某些ROM例如MIUI刷机脚本里的防回滚保护检测
+-	export FOX_BUGGED_AOSP_ARB_WORKAROUND="1546300800"; # Tuesday, January 1, 2019 12:00:00 AM GMT+00:00
+-	# 使不同销售区域的pandora机型都能通过机型断言
+-	# export TARGET_DEVICE_ALT="pandora"
+-	# 当刷机包包含机型白名单时，可强制声明支持机型（与TARGET_OTA_ASSERT_DEVICE冲突）
+-	# export FOX_TARGET_DEVICES="pandora"
+-
+-	# 为“快速备份”指定默认选择的分区
+-	export OF_QUICK_BACKUP_LIST="/boot;/data;"
+-	# 将装载逻辑分区时的一些错误仅显示在日志里
+-	export OF_IGNORE_LOGICAL_MOUNT_ERRORS=1
+-	# 禁用橙狐内置的magisk菜单
+-	# export FOX_DELETE_MAGISK_ADDON=1
+-	# 使用指定的magisk
+-	# export FOX_USE_SPECIFIC_MAGISK_ZIP="$HOME/Magisk.zip"
+-	# 使用指定的magisk版本号，由于magisk 23+使用了新的包装形式，文件路径改变了，橙狐无法获取正确的版本
+-	# export MAGISK_VER=26.1
+-	# 当修补recovery/boot镜像时，始终指示magiskboot v24+修补vbmeta标头（自动禁用avb验证？）
+-	export FOX_PATCH_VBMETA_FLAG=1
+-	# 标记该设备肯定是原生Android 11+虚拟A/B（“VAB”）设备
+-	export FOX_VIRTUAL_AB_DEVICE=1
+-	# 指定super分区的完整大小，修复部分设备刷入miui rom失败，VAB设备专用变量
+-	export OF_DYNAMIC_FULL_SIZE=13421772800
+-	# 在修复或格式化f2fs数据分区之前自动卸载绑定/sdcard
+-	export OF_UNBIND_SDCARD_F2FS=1
+-	# 禁止把橙狐永久刷入vab设备，并且，禁止在安装 ROM 之后自动重刷橙狐
+-	# export OF_NO_REFLASH_CURRENT_ORANGEFOX=1
+-	# 标记该设备为recovery存在于vendor_boot分区中的设备（如k50之类的rec既不在boot分区里也没有独立rec分区的设备）
+-	# export FOX_VENDOR_BOOT_RECOVERY=1
+-	# 设置默认时区为北京时间
+-	export OF_DEFAULT_TIMEZONE="TAIST-8;TAIDT"
+-	# 支持通过修补vbmeta/vbmeta_system禁用avb2.0
+-	export OF_SUPPORT_VBMETA_AVB2_PATCHING=1
+-	# 安装压缩包页面选项的最大数量，调小这个值会显示滚动条（大于4小于9时生效，默认为4）
+-	export OF_OPTIONS_LIST_NUM=6
+-
+-	F=$(find "device" -maxdepth 2 -name "pandora")
+-	# 修改启动画面背景色为#000000
+-	\cp -fp bootable/recovery/gui/theme/portrait_hdpi/splash.xml "$F"/recovery/root/twres/splash.xml
+-	sed -i 's/value="#D34E38"/value="#000000"/g' "$F"/recovery/root/twres/splash.xml
+-	sed -i 's/value="#FF8038"/value="#000000"/g' "$F"/recovery/root/twres/splash.xml
+-
+-	echo -e "\x1b[96mpandora: 当你看到这个消息的时候，所有的OrangeFox Var已经添加完毕！\x1b[m"

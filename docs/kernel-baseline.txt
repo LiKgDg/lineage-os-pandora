@@ -1,0 +1,112 @@
+# 内核基线（官方 OS3.0.318.0.WBLCNXM）
+# 来源：device/xiaomi/pandora-kernel/Image（从实机 boot_a 反解）
+# 提取时间：2026-10-25
+
+## 完整 banner
+
+Linux version 6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k (kleaf@build-host) (Android (14043575, +pgo, +bolt, +lto, +mlgo, based on r536225) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project b3a530ec6537146650e42be89f1089e9a3588460), LLD 19.0.1) #1 SMP PREEMPT Thu Nov 27 08:45:40 UTC 2026
+
+## 拆解
+
+kernel release : 6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k
+linux version  : 6.12.23
+KMI generation : android16-5
+git commit     : 75e9b1c7ae7c
+build id       : abogki463945075
+page size      : 4k
+build user     : kleaf@build-host          ← 确认走 Kleaf 构建
+toolchain      : Android clang 19.0.1 (r536225), LLD 19.0.1
+build flags    : +pgo +bolt +lto +mlgo     ← 带 PGO/BOLT/LTO/MLGO，非常规编法
+build time     : Thu Nov 27 08:45:40 UTC 2026
+
+## 为什么这些字段重要
+
+### 先说一个容易搞错的点：release 串**不是**加载的硬门槛
+
+早期这里写的是「自编译内核必须产出完全相同的 release 串，否则 vendor_dlkm 里
+374 个 .ko 全部拒绝加载」——**这个说法是错的**，已被实机数据推翻。
+
+Linux 的 `check_modinfo()` 调用 `same_magic()`：
+
+    static inline int same_magic(const char *amagic, const char *bmagic, bool has_crcs)
+    {
+        if (has_crcs) {
+            amagic += strcspn(amagic, " ");   // 跳过第一个空格前的内容
+            bmagic += strcspn(bmagic, " ");
+        }
+        return strcmp(amagic, bmagic) == 0;
+    }
+
+`CONFIG_MODVERSIONS=y` 且模块带 `__versions` section 时 `has_crcs` 为真，
+**release 串（第一个空格之前）被整段跳过**，只比较后面的
+
+    SMP preempt mod_unload modversions aarch64
+
+**铁证**：官方 vendor_boot ramdisk 里的 416 个模块，vermagic 是
+
+    6.12.23-android16-5-gd8653a69a3aa-mi-4k SMP preempt mod_unload modversions aarch64
+
+而本机 Image 是
+
+    6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k SMP preempt ...
+
+两者的 release 串**完全不同**（`gd8653a69a3aa-mi` vs `g75e9b1c7ae7c-abogki463945075`），
+但设备正常开机。说明 release 段确实不参与比较。
+
+### 真正决定成败的是符号 CRC
+
+`CONFIG_MODVERSIONS` 下，模块的 `__versions` section 记录了它引用的每个内核符号的
+CRC 值，加载时逐个比对内核的 `__crc_<symbol>`。**CRC 对不上才是真正的
+「Invalid module format」**。
+
+CRC 由符号的类型签名决定，跟 KMI generation 绑定：
+
+    -android16-5  →  ACK 分支 android16-6.12 的 KMI generation 5
+
+如果要重建内核，`common/` 必须取**同一 generation**，否则 KMI 符号表不一致，
+CRC 全部对不上，模块一律拒绝加载。
+
+### 那 release 串还要不要对齐
+
+建议对齐，但理由变了：
+
+| 理由 | 强度 |
+|---|---|
+| 模块加载 | ❌ 不必要（release 段被跳过） |
+| 排查方便（`uname -r` 一眼看出是不是自己编的） | ✅ 建议 |
+| `depmod` 输出路径 `/lib/modules/<release>/` | ✅ 建议（Android 用扁平路径，影响小） |
+| 某些第三方工具会硬校验 release | ⚠️ 偶发 |
+
+所以：**release 对齐是「推荐」，KMI/CRC 对齐是「必须」**。别为了凑 release 串
+去改 LOCALVERSION，却忽略了 KMI generation —— 那是本末倒置。
+
+### 关于 `+pgo +bolt +lto +mlgo`
+
+说明官方用了 Android 的优化流水线（PGO profile、BOLT 后链接优化、LTO、MLGO 机器学习内联）。
+用普通 `make` 编出来的内核即使 release 串伪造对了，性能和体积也差很多。
+**LTO 还会影响符号可见性**——这是真正可能让某些模块 CRC 对不上、加载失败的因素，
+比 release 串重要得多。
+
+## 对照用命令
+
+官方内核：
+
+    grep -a -o "Linux version 6\.12\.23[^\x00]\{0,260\}" device/xiaomi/pandora-kernel/Image | head -1
+
+官方 vendor_boot ramdisk 模块（注意 release 段不同，这是正常的）：
+
+    grep -a -o "vermagic=[^\x00]*" device/xiaomi/pandora-kernel/vendor_ramdisk/lib/modules/ufs-qcom.ko
+
+自编译内核（产出后）：
+
+    grep -a -o "Linux version [^\x00]\{0,260\}" out/Image | head -1
+
+**必须逐字相同的是 vermagic 的后缀**（`SMP preempt mod_unload modversions aarch64`），
+以及符号 CRC。release 段不同不致命。
+
+实测核对（2026-10-26）：
+
+    内核 Image          : 6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k
+    ramdisk 416 个模块  : 6.12.23-android16-5-gd8653a69a3aa-mi-4k
+    system_dlkm 103 个  : 6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k
+    后缀 519 个全部一致  : SMP preempt mod_unload modversions aarch64  ✅
