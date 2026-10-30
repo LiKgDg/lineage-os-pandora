@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """Generate Android.mk / pandora-vendor.mk / BoardConfigVendor.mk for a blob package.
 
+*** DEPRECATED — use gen_vendor_bp.py instead. ***
+
+Modern LineageOS blob packages must be soong-based. A make-based Android.mk
+collides with soong's per-partition NOTICE target and kati aborts with:
+
+    build/make/core/base_rules.mk:513: error: overriding commands for target
+    out/target/product/pandora/odm/etc/NOTICE.xml.gz
+
+This script is kept only for historical reference; gen_vendor_bp.py emits the
+soong equivalent and additionally renames any leftover Android.mk out of the way.
+
 Usage:
     gen_vendor_mk.py <device_vendor_dir>
 

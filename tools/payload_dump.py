@@ -2,15 +2,20 @@
 """Minimal Android OTA payload.bin dumper (A/B full & incremental).
 
 Usage:
-    payload_dump.py <ota.zip> <outdir> [partition ...]
+    payload_dump.py <ota.zip> <outdir> [partition ...] [--verify]
     payload_dump.py --list <ota.zip>
 
 Only implements what a full-OTA dump needs: REPLACE / REPLACE_BZ / REPLACE_XZ /
 ZERO / DISCARD. Incremental-only ops (SOURCE_COPY, *BSDIFF, PUFFDIFF, ZUCCHINI)
-are reported and skipped.
+cannot be reconstructed from a single package; they are detected up front and the
+dump is refused unless --allow-incomplete is given.
+
+--verify recomputes the sha256 of every dumped image and compares it with the
+hash carried in the payload manifest (PartitionUpdate.new_partition_info).
 """
 
 import bz2
+import hashlib
 import lzma
 import os
 import struct
@@ -18,6 +23,16 @@ import sys
 import zipfile
 
 BLOCK = 4096
+
+# InstallOperation.Type values that carry the full data for their destination.
+DATA_OPS = {0: "REPLACE", 1: "REPLACE_BZ", 8: "REPLACE_XZ"}
+ZERO_OPS = {6: "ZERO", 7: "DISCARD"}
+# Everything else needs the source image, i.e. this is an incremental package.
+INCREMENTAL_OPS = {
+    2: "MOVE", 3: "BSDIFF", 4: "SOURCE_COPY", 5: "SOURCE_BSDIFF",
+    9: "PUFFDIFF", 10: "BROTLI_BSDIFF", 11: "ZUCCHINI",
+    12: "LZ4DIFF_BSDIFF", 13: "LZ4DIFF_PUFFDIFF",
+}
 
 
 def read_varint(buf, i):
@@ -85,11 +100,24 @@ def parse_op(buf):
     return op
 
 
+def parse_new_partition_info(buf):
+    """PartitionInfo { size = 1; hash = 2; }"""
+    info = {"size": 0, "hash": b""}
+    for field, _wt, val in parse_msg(buf):
+        if field == 1:
+            info["size"] = val
+        elif field == 2:
+            info["hash"] = val
+    return info
+
+
 def parse_partition(buf):
-    part = {"name": None, "ops": []}
+    part = {"name": None, "ops": [], "new_info": None}
     for field, wt, val in parse_msg(buf):
         if field == 1 and wt == 2:
             part["name"] = val.decode("utf-8", "replace")
+        elif field == 7 and wt == 2:
+            part["new_info"] = parse_new_partition_info(val)
         elif field == 8 and wt == 2:
             part["ops"].append(parse_op(val))
     return part
@@ -122,21 +150,56 @@ def load_manifest(zf):
     return version, parse_manifest(manifest), data_base
 
 
-def dump_partition(zf, outdir, part, data_base=0):
-    name = part["name"]
-    path = os.path.join(outdir, name + ".img")
-    # image size = highest dst block end
+def image_size(part):
     end = 0
     for op in part["ops"]:
         for start, num in op["dst"]:
             end = max(end, (start + num) * BLOCK)
+    return end
+
+
+def incremental_ops(part):
+    """Return the set of unsupported (incremental-only) op type names."""
+    return {INCREMENTAL_OPS[op["type"]]
+            for op in part["ops"] if op["type"] in INCREMENTAL_OPS}
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.digest()
+
+
+def verify_image(path, part):
+    """Compare dumped image against the manifest's new_partition_info."""
+    info = part["new_info"]
+    if not info or not info["hash"]:
+        return None, "manifest has no new_partition_info hash"
+    size = os.path.getsize(path)
+    if info["size"] and size != info["size"]:
+        return False, "size %d != expected %d" % (size, info["size"])
+    got = sha256_file(path)
+    if got != info["hash"]:
+        return False, "sha256 %s != expected %s" % (
+            got.hex()[:16] + "...", info["hash"].hex()[:16] + "...")
+    return True, "sha256 ok"
+
+
+def dump_partition(zf, outdir, part, data_base=0, verify=False):
+    name = part["name"]
+    path = os.path.join(outdir, name + ".img")
+    end = image_size(part)
+    skipped = incremental_ops(part)
+
     with open(path, "wb") as out:
         out.truncate(end)
         src = zf.open("payload.bin")
         written = 0
         for op in part["ops"]:
             t = op["type"]
-            if t in (0, 1, 8):
+            if t in DATA_OPS:
                 src.seek(data_base + op["data_offset"])
                 raw = src.read(op["data_length"])
                 if t == 1:
@@ -145,16 +208,15 @@ def dump_partition(zf, outdir, part, data_base=0):
                     data = lzma.decompress(raw)
                 else:
                     data = raw
-            elif t in (6, 7):
+            elif t in ZERO_OPS:
                 data = b""
             else:
-                print("  ! %s: skip unsupported op type %d" % (name, t))
                 continue
             pos = 0
             for start, num in op["dst"]:
                 span = num * BLOCK
                 out.seek(start * BLOCK)
-                if t in (6, 7):
+                if t in ZERO_OPS:
                     out.write(b"\0" * span)
                 else:
                     chunk = data[pos:pos + span]
@@ -164,37 +226,80 @@ def dump_partition(zf, outdir, part, data_base=0):
                     pos += span
                 written += span
         src.close()
-    print("  %-16s %12d bytes  %3d ops  -> %s" % (name, end, len(part["ops"]), path))
-    return end
+
+    note = ""
+    if skipped:
+        note = "  !! incomplete: %s" % ",".join(sorted(skipped))
+
+    print("  %-16s %12d bytes  %3d ops  -> %s%s"
+          % (name, end, len(part["ops"]), path, note))
+
+    if verify:
+        ok, msg = verify_image(path, part)
+        if ok is True:
+            print("      verify: PASS  (%s)" % msg)
+        elif ok is False:
+            print("      verify: FAIL  (%s)" % msg)
+            return end, False
+        else:
+            print("      verify: SKIP  (%s)" % msg)
+    return end, True
 
 
 def main():
     args = sys.argv[1:]
     if not args:
         raise SystemExit(__doc__)
+
     listing = args[0] == "--list"
     if listing:
         args = args[1:]
-    zip_path, outdir = args[0], args[1] if len(args) > 1 else None
+    verify = "--verify" in args
+    allow_incomplete = "--allow-incomplete" in args
+    args = [a for a in args if not a.startswith("--")]
+
+    zip_path = args[0]
+    outdir = args[1] if len(args) > 1 else None
     wanted = args[2:]
 
     zf = zipfile.ZipFile(zip_path)
     version, parts, data_base = load_manifest(zf)
     print("payload major version %d, %d partitions" % (version, len(parts)))
+
     if listing:
         for p in parts:
-            total = 0
-            for op in p["ops"]:
-                for start, num in op["dst"]:
-                    total = max(total, (start + num) * BLOCK)
-            print("  %-20s %12d bytes  %3d ops" % (p["name"], total, len(p["ops"])))
+            inc = incremental_ops(p)
+            flag = "  [incremental: %s]" % ",".join(sorted(inc)) if inc else ""
+            print("  %-20s %12d bytes  %3d ops%s"
+                  % (p["name"], image_size(p), len(p["ops"]), flag))
         return
 
+    selected = [p for p in parts if not wanted or p["name"] in wanted]
+
+    # An incremental package cannot be reconstructed without the source image.
+    bad = [(p["name"], sorted(incremental_ops(p))) for p in selected
+           if incremental_ops(p)]
+    if bad and not allow_incomplete:
+        print("\nERROR: this is an INCREMENTAL package, not a full OTA.")
+        for name, ops in bad:
+            print("  %-16s needs: %s" % (name, ",".join(ops)))
+        print("Reconstructing these needs the source build; use the full OTA "
+              "package instead, or pass --allow-incomplete to dump partial data.")
+        raise SystemExit(2)
+
     os.makedirs(outdir, exist_ok=True)
-    for p in parts:
-        if wanted and p["name"] not in wanted:
-            continue
-        dump_partition(zf, outdir, p, data_base)
+    failures = []
+    for p in selected:
+        _size, ok = dump_partition(zf, outdir, p, data_base, verify)
+        if not ok:
+            failures.append(p["name"])
+
+    if verify:
+        print("\nverify summary: %d ok, %d failed"
+              % (len(selected) - len(failures), len(failures)))
+        if failures:
+            print("failed: %s" % ", ".join(failures))
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":
