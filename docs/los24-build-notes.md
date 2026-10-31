@@ -937,3 +937,86 @@ cc_prebuilt_library_shared {
 构建期无法验证，需刷机后实测。
 
 `check_elf_files: false` 只跳过构建期校验，不改变二进制内容。
+
+---
+
+## 二十六、D3 完成：完整 ROM 构建成功
+
+### 结果
+
+```
+[100% 4951/4951] //frameworks/base/api:module-lib-api-stubs-docs-non-updatable check current API
+ninja: 7m00.97s Build Succeeded: 4913 steps - 11.67/s
+#### build completed successfully (08:20 (mm:ss)) ####
+```
+
+产物：
+
+```
+lineage-24.0-20261031-UNOFFICIAL-pandora.zip   1,188,353,697 字节（1.11 GB）
+sha256 ed4c316b4d5ebd7a19db90df2504de8d02554999f7f137970d03d6fac7395ef8
+```
+
+副本已放 `D:/WSL/out/pandora/`，sha256 一致。
+
+### 包内分区（payload.bin 格式，共 15 个）
+
+| 分区 | 大小 |
+|---|---|
+| system | 1,054,814,208 |
+| product | 1,747,648,512 |
+| system_ext | 620,830,720 |
+| vendor | 672,915,456 |
+| vendor_dlkm | 129,163,264 |
+| boot | 100,663,296 |
+| vendor_boot | 100,663,296 |
+| recovery | 104,857,600 |
+| odm | 31,248,384 |
+| system_dlkm | 29,614,080 |
+| dtbo | 23,068,672 |
+| init_boot | 8,388,608 |
+| pvmfw | 1,048,576 |
+| vbmeta / vbmeta_system | 8,192 |
+
+LOS 24 的 `m bacon` 产出的是 payload 格式 OTA，不是分散的 img 文件，
+所以用 `unzip -l` 看不到 `boot.img` 之类，属正常。验证分区完整性要用
+`tools/payload_dump.py <zip> <outdir> --list`。
+
+### 全程回顾：11 轮续编
+
+| 轮次 | 失败原因 | 剩余目标 |
+|---|---|---|
+| 1 | `<algorithm>`（recovery） | 111,018 |
+| 2 | `<memory>`/`<vector>`（振动器 HAL） | 70,069 |
+| 3 | `linux/msm_ipa.h`（IPA） | 50,018 |
+| 4 | IPA 分析图未更新 + `<algorithm>`（vold） | — |
+| 5 | `<vector>`（VolumeManager.h） | — |
+| 6 | `<functional>`（指纹 HAL）+ LFS 指针 | — |
+| 7 | prebuilt 盖住 aidl_interface | — |
+| 8 | 头文件定义全局变量（`-fno-common`） | 13,095 |
+| 9 | SELinux 兼容性未登记 | 4,853 |
+| 10 | `check_elf_file` DT_NEEDED 校验 | — |
+| 11 | **成功** | 0 |
+
+单轮最长 1h12m（第 1 轮），最短 1m34s（后续增量）。累计约 4 小时。
+
+### 修复清单（全部脚本化，可 --revert）
+
+| 脚本 | 解决的问题 |
+|---|---|
+| `fix_recovery_algorithm.py` | recovery 的 `PublicVolume.cpp` 缺 `<algorithm>` |
+| `add_include.py` | 通用补标准头（vold / 振动器 / 指纹 / VolumeManager.h） |
+| `fix_ipa_headers.py` | 预编译内核设备缺 `linux/msm_ipa.h` |
+| `fix_citsensor_prebuilt.py` | prebuilt 盖住 aidl_interface |
+| `fix_qcwcn_common.py` | 头文件定义全局变量导致 duplicate symbol |
+| `fix_sepolicy_compat.py` | SELinux 202604 兼容性忽略清单 |
+| `fix_wfd_elfcheck.py` | `check_elf_file` 的 DT_NEEDED 校验 |
+| `patch_manifest_stub.py` | `.repo` 缺失时 manifest 降级 |
+| `pull_lfs_objects.sh` | 拉取 Git LFS 对象 |
+
+### 未验证的部分
+
+- **刷机启动（D4）**：完全未验证。构建成功不等于能开机。
+- **WFD 运行时**：`libwfdcommonutils.so` 依赖的 `libdng_sdk.so` 不在镜像里（见第二十五节）。
+- **overlay 数值**：继承自 popsicle，需按 stock 核对。
+- **触摸方向**：未加 idc，依赖驱动层处理，需实测。

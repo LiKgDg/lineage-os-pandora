@@ -147,8 +147,21 @@ bash scripts/build/build_twrp.sh 10       # 前台编译，GUI 终端可见进�
 |---|---|---|
 | D1 | `lunch lineage_pandora-trunk_staging-userdebug` | ✅ 通过 |
 | D2 | `m nothing`（全量 soong 分析） | ✅ 通过（30:07，0 error） |
-| D3 | `mka bacon` 出 zip | ⏸ 受 D 盘空间阻塞 |
-| D4 | 刷入并启动 | ⏸ |
+| D3 | `mka bacon` 出 zip | ✅ **通过**（1.11 GB OTA 包） |
+| D4 | 刷入并启动 | ⏸ 待刷机验证 |
+
+D3 产物：
+
+```
+lineage-24.0-20261031-UNOFFICIAL-pandora.zip   1,188,353,697 字节
+sha256 ed4c316b4d5ebd7a19db90df2504de8d02554999f7f137970d03d6fac7395ef8
+```
+
+包内 15 个分区（payload.bin 格式）：`boot` `dtbo` `init_boot` `vendor_boot`
+`vendor` `vendor_dlkm` `system` `system_ext` `product` `system_dlkm` `odm`
+`recovery` `pvmfw` `vbmeta` `vbmeta_system`。
+
+副本：`D:\WSL\out\pandora\`
 
 D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 
