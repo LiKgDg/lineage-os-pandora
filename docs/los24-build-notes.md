@@ -832,3 +832,61 @@ struct i802_bss *bss;
 ```bash
 grep -rn "^\s*struct .*\*\(drv\|bss\);" --include=*.h <项目目录>
 ```
+
+---
+
+## 二十四、SELinux Treble 兼容性测试：新增 public type 未登记
+
+### 现象
+
+```
+FAILED: .../treble_sepolicy_tests_202604
+SELinux: The following public types were found added to the policy without an
+entry into the compatibility mapping file(s) found in
+private/compat/V.v/V.v[.ignore].cil, where V.v is the latest API level.
+
+hal_touchfeature_xiaomi_default hal_touchfeature_xiaomi_default_exec
+hal_touchfeature_xiaomi_service iso9660 qsguard udf usb_uvc_config_prop
+vendor_afp_prop vendor_bt_prop ... xtra_control_prop
+```
+
+共 61 个类型，全部来自 vendor sepolicy（blobs 与设备树新增的策略）。
+
+### 机制
+
+`treble_sepolicy_tests` 会检查 vendor 策略是否**新增了 public type**。
+Treble 要求 vendor 分区不能随意扩充 public type，否则系统升级时可能冲突。
+新增的类型必须二选一处理：
+
+1. 在 `private/compat/<ver>/<ver>.cil` 里映射到旧类型
+2. 在 `private/compat/<ver>/<ver>.ignore.cil` 里登记为「无历史对应物，无需映射」
+
+我们这些类型都是新引入的，选 2。
+
+### 修复
+
+设备树里已有 `sepolicy/private/compat/` 目录，含 30.0 / 31.0 / 32.0 / 33.0 /
+34.0 / 202404 / 202504 七套文件，**缺 202604**。
+
+`scripts/maintain/fix_sepolicy_compat.py` 生成
+`private/compat/202604/202604.ignore.cil`：
+
+```
+(type new_objects)
+(typeattribute new_objects)
+(typeattributeset new_objects
+  ( new_objects
+    hal_touchfeature_xiaomi_default
+    ...
+    xtra_control_prop
+  ))
+```
+
+验证：`m treble_sepolicy_tests_202604 -j8` → 生成成功。
+
+### 注意
+
+每次 Android 大版本升级（API level 变），都会多出一套新的 `<ver>` 目录要求。
+报错信息里给出的两个 review 链接是官方示例，格式照抄即可。
+
+`ignore.cil` 是**逐版本独立**的，不能只往旧版本文件里加——新版本的检查只读新版本目录。
