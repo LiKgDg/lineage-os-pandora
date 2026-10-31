@@ -776,3 +776,59 @@ prebuilt 只提供二进制，不导出生成的头；源码版才带头。
 
 改 `prefer` 会让 soong 全量重分析（本次 13 分钟）。改完先用 `m <module>` 验证，
 不要直接跑整包。
+
+---
+
+## 二十三、头文件里的全局变量导致 `duplicate symbol`
+
+### 现象
+
+```
+FAILED: .../wpa_supplicant/android_vendor_arm64_armv8-a-branchprot_cfi/unstripped/wpa_supplicant
+ld.lld: error: duplicate symbol: drv
+>>> defined in .../lib_driver_cmd_qcwcn.a(driver_cmd_nl80211.o)
+>>> defined in .../lib_driver_cmd_qcwcn.a(driver_cmd_nl80211_oem_data.o)
+ld.lld: error: duplicate symbol: bss
+```
+
+`hostapd` 同时失败，因为它链接同一个静态库。
+
+### 根因
+
+`hardware/qcom-caf/wlan/qcwcn/wpa_supplicant_8_lib/driver_cmd_nl80211_common.h`
+第 57-58 行在**头文件里**写了不带 `extern` 的全局定义：
+
+```c
+struct wpa_driver_nl80211_data *drv;
+struct i802_bss *bss;
+```
+
+这个头被 6 个 `.c` 包含，每个目标文件都产出一个强符号。
+现代编译器默认 `-fno-common`（clang 11+），重复的暂定定义不再合并，直接报错。
+
+这两行是遗留代码——所有实际使用处都在函数内声明了同名局部变量。
+
+### 修复
+
+`scripts/maintain/fix_qcwcn_common.py`：给 `lib_driver_cmd_qcwcn` 加 `-fcommon`，
+恢复「暂定定义按 COMMON 符号合并」的旧语义。**不改源码，语义不变。**
+
+验证：`m wpa_supplicant -j8` → 1214 步，1 分 24 秒，通过。
+
+### 备选方案与取舍
+
+| 方案 | 风险 |
+|---|---|
+| 加 `-fcommon`（已采用） | 最低，不改代码语义 |
+| 把两行改成 `extern` | 若真有代码引用全局符号，会变成 undefined reference |
+| 删掉两行 | 同上，且更隐蔽 |
+
+### 通用判断
+
+`ld.lld: error: duplicate symbol: X` 且 X 是普通变量名（`drv`/`bss`/`buf`），
+且定义来自同一个 `.a` 的多个成员，基本就是「头文件里写了不带 extern 的变量定义」。
+查证：
+
+```bash
+grep -rn "^\s*struct .*\*\(drv\|bss\);" --include=*.h <项目目录>
+```
