@@ -342,3 +342,49 @@ endif
 
 D3（`mka bacon`）预计需要 `out/` 再涨 60–80 GB，而 D 盘只剩 13.7 GB
 （vhdx 436.5 GB / 总 500 GB）。必须先解决空间，见磁盘方案。
+
+---
+
+## 十四、`.repo` 迁移到独立虚拟磁盘（2026-10-31 12:52）
+
+### 为什么必须搬
+
+D 盘总 500 GB，`ext4.vhdx` 437 GB，`.repo` 独占 290 GB，`out/` 还要再涨 80 GB。
+清理临时文件只能腾出 1 GB，compact 也只能回收 4 GB（425 vs 429，空洞极小）。
+
+而且**不能简单删 `.repo`**——`vendor/lineage/build/tasks/build-manifest_xml.mk:21`
+会在构建时执行：
+
+```makefile
+REPO_TRACE=0 python3 .repo/repo/repo manifest -o - -r | grep -Ev "proprietary_..." > $@
+```
+
+删掉 `.repo` 会让 `mka bacon` 在生成 build-manifest 时失败。
+
+### 做法
+
+| 步骤 | 操作 |
+|---|---|
+| 1 | `diskpart` 在 `E:/WSL/los24-repo.vhdx` 建 300 GB 动态 VHD（需管理员） |
+| 2 | `wsl --mount --vhd ... --bare` 附加（需管理员），出现 `/dev/sde` |
+| 3 | `mkfs.ext4 -L los24repo /dev/sde`，挂到 `/mnt/los24-repo` |
+| 4 | `rsync -aHAX --numeric-ids` 复制 `.repo`，约 36 分钟 |
+| 5 | 校验字节数一致（310,721,610,351 对 310,721,610,351） |
+| 6 | 原 `.repo` 改名 `.repo.old`，`mount --bind /mnt/los24-repo /root/los24/.repo` |
+| 7 | 验证 `repo list`（1246）与 `repo manifest -r`（1287 行） |
+| 8 | 删 `.repo.old`，WSL 内部 433 GB → **143 GB** |
+
+`/etc/fstab` 新增（UUID 由 `blkid` 取得）：
+
+```
+UUID=20f171fd-23e4-4f48-b48b-8fe358041783 /mnt/los24-repo ext4 defaults,nofail 0 2
+/mnt/los24-repo /root/los24/.repo none bind,nofail 0 0
+```
+
+### 运维注意
+
+`wsl --mount --vhd` 的附加**不会跨 WSL 重启保留**。脚本 `scripts/maintain/compact-disk.cmd`
+（管理员）会依次做：关闭 WSL → compact vhdx → 启动 WSL → 重新附加 VHD → `mount -a` → 校验。
+**每次 `wsl --shutdown` 之后都要跑一次**，否则 `.repo` 为空、构建会在 manifest 步骤失败。
+
+`fstab` 里用了 `nofail`，所以 VHD 未附加时不会阻塞启动，但 `.repo` 会是空目录。
