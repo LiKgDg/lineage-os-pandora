@@ -555,3 +555,68 @@ grep -A30 "<出错的 .o 路径>$" /root/d3.log | grep -E "error:|note:"
 ```
 
 看到 `undefined template 'std::xxx'` 或 `no member named`，基本都是缺对应的标准头。
+
+---
+
+## 二十、预编译内核设备缺 IPA 内核头（`linux/msm_ipa.h`）
+
+### 现象
+
+```
+hardware/qcom-caf/sm8850/dataipa/ipanat/inc/ipa_mem_descriptor.h:34:10:
+fatal error: 'linux/msm_ipa.h' file not found
+```
+
+失败模块：`libipanat`（后续还会波及 `ipacm`）。
+
+### 机制
+
+`ipanat/Android.bp` 的 `header_libs` 里声明了 `qti_ipa_kernel_headers`，它定义在
+`hardware/qcom-caf/common/Android.bp`，走 `generated_kernel_header_defaults`：
+
+```
+generated_kernel_header_defaults
+  -> generated_kernel_includes
+     -> make -C $(TARGET_KERNEL_SOURCE) headers_install
+```
+
+**这条路要求有内核源码。** 我们用预编译内核，`TARGET_KERNEL_SOURCE` 指向的
+`device/xiaomi/pandora-kernel/kernel-headers` 根本不存在，导出目录为空，
+于是 `<linux/msm_ipa.h>` 找不到。
+
+### 一个容易误判的细节
+
+`dataipa/drivers/platform/msm/Androidbp`（**注意文件名没有点**）里其实定义了正确的实现——
+用 genrule `qti_generate_ipa_kernel_headers` 从 `include/uapi/linux/*.h` 生成头。
+但 soong 只认 `Android.bp`，这个文件被完全忽略，所以那套逻辑从未生效。
+
+想启用它也走不通：genrule 依赖 `unifdef`（`external/unifdef` 不在树里）和
+`headers_install.sh`（树里没有对应模块）。
+
+### 实际修复
+
+项目自带的 UAPI 头可直接给用户态用——`msm_ipa.h` 里本来就有
+`#ifndef __KERNEL__` 保护，不需要 unifdef 处理。
+
+`scripts/maintain/fix_ipa_headers.py`：
+
+1. 在 `dataipa/drivers/platform/msm/Android.bp` 新建 `qti_ipa_kernel_headers_dp`，
+   `export_include_dirs: ["include/uapi"]`
+2. 给 3 处 `header_libs` 追加该模块
+   （`ipanat` 1 处、`ipacm` 2 处——后者含 `ipacm` 与 `aidl_fuzzer_ipacm`）
+
+只动 sm8850 的 dataipa 项目，不影响 `hardware/qcom-caf/common`，其它平台不受牵连。
+
+### 同类问题的判断方法
+
+`fatal error: 'linux/xxx.h' file not found` 且该头确实存在于某个 `include/uapi` 目录下，
+基本就是「header_libs 指向的模块在预编译内核配置下导出为空」。
+查证方式：
+
+```bash
+# 头到底在不在树里
+find . -name "msm_ipa.h" -not -path "./out/*"
+
+# 声明的 header_libs 是怎么定义的
+grep -rn -A10 'name: "qti_ipa_kernel_headers"' --include=Android.bp . | grep -v "^./out/"
+```
