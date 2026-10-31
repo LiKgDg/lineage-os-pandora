@@ -721,3 +721,58 @@ git lfs pull
 find . -size -1k \( -name "*.apk" -o -name "*.jar" -o -name "*.so" \) \
   -not -path "./out/*" | xargs head -c 100 2>/dev/null | grep -l "git-lfs"
 ```
+
+---
+
+## 二十二、blobs 的 prebuilt 盖住了 aidl_interface，导致缺 AIDL 头
+
+### 现象
+
+```
+device/xiaomi/sm8850-common/alsd/alsd.cpp:8:10:
+fatal error: 'aidl/vendor/xiaomi/sensor/citsensorservice/ICitSensorService.h' file not found
+```
+
+### 机制
+
+树里有两个同名模块 `vendor.xiaomi.sensor.citsensorservice-V1-ndk`：
+
+| 来源 | 类型 | 是否导出头 |
+|---|---|---|
+| `device/xiaomi/sm8850-common/interfaces/citsensors/Android.bp` 的 `aidl_interface` | 源码生成 | ✅ 导出 `aidl/...` 头 |
+| `vendor/xiaomi/sm8850-common/Android.bp:23041` | `cc_prebuilt_library_shared` | ❌ 只打包 .so |
+
+后者带 `prefer: true`，soong 因此选择 prebuilt（中间产物目录被改名为
+`prebuilt_vendor.xiaomi...`），源码版被盖住，头文件也就没了。
+
+### 修复
+
+`scripts/maintain/fix_citsensor_prebuilt.py`：把该 prebuilt 的 `prefer` 改为 `false`，
+让 `aidl_interface` 生成的模块生效。
+
+验证（`m alsd`）：
+
+```
+//device/xiaomi/sm8850-common/interfaces/citsensors:vendor.xiaomi...-V1-ndk copy ....so
+//device/xiaomi/sm8850-common/alsd:alsd link alsd
+Install: out/target/product/pandora/vendor/bin/hw/alsd
+```
+
+模块来源变成 `device/xiaomi/.../interfaces/citsensors`，alsd 链接通过。
+
+### 通用判断
+
+`fatal error: 'aidl/...' file not found` 且该 AIDL 接口确实在设备树里定义时，
+先查是否有同名 prebuilt 抢了优先级：
+
+```bash
+grep -rn 'name: ".*-V[0-9]*-ndk"' --include=Android.bp vendor/ | head
+grep -rn -B2 -A20 'prefer: true' --include=Android.bp vendor/xiaomi/*/Android.bp | grep -A20 'ndk'
+```
+
+prebuilt 只提供二进制，不导出生成的头；源码版才带头。
+
+### 副作用
+
+改 `prefer` 会让 soong 全量重分析（本次 13 分钟）。改完先用 `m <module>` 验证，
+不要直接跑整包。
