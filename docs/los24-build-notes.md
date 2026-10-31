@@ -295,3 +295,50 @@ env -i "$BUILDER" --top ... --available_env out/soong/soong.environment.availabl
 - 精简树里用不到的模块（cts、deqp 等）以减少 soong 分析量
 
 判断是否在真跑而不是纯抖动：看 `%CPU`，超过 200% 说明在多线程推进。
+
+---
+
+## 十三、D2 通过（2026-10-31 10:44）
+
+```
+[100% 43/43] nothing
+Successfully read the makefiles.
+ninja:  6.10s Build Succeeded: 1 steps - 0.16/s
+#### build completed successfully (30:07 (mm:ss)) ####
+```
+
+0 个 `FAILED`，0 个 `error`。soong 全量分析 + kati 读 makefile 全部通过。
+
+### 第 4 类问题的细节
+
+上一轮卡在 kati：
+
+```
+vendor/lineage/build/tasks/kernel.mk:140: error: Argument missing.
+```
+
+第 140 行是 `ifeq ($(call is-version-greater-or-equal,$(TARGET_KERNEL_VERSION),5.15),true)`，
+`TARGET_KERNEL_VERSION` 为空导致 `call` 缺参数。
+
+该变量只在 `sm8850-common/BoardConfigCommon.mk:108` 定义，而它位于
+
+```makefile
+ifeq ($(TARGET_OPT_IN_OSS_KERNEL),true)
+    TARGET_KERNEL_VERSION := 6.12
+endif
+```
+
+即「用 OSS 源码编内核」的分支。我们用预编译内核，分支不执行，变量为空。
+
+而 `kernel.mk:140` 又位于 `ifneq ($(TARGET_NO_KERNEL_OVERRIDE),true)` 块内（第 106 行起），
+本应由 `TARGET_NO_KERNEL_OVERRIDE := true` 跳过。这个变量在 pandora 的 `BoardConfig.mk`
+里是有的，但被 `ifneq ($(wildcard $(KERNEL_PATH)/kernel),)` 守卫——`pandora-kernel`
+没部署时守卫不成立，变量没设，于是走进 140 行。
+
+**所以根因不是缺变量，是内核仓库没就位。** 部署 `device/xiaomi/pandora-kernel` 后，
+`wildcard` 成立 → `TARGET_NO_KERNEL_OVERRIDE := true` → 整个块被跳过 → 错误消失。
+
+### D3 的阻塞
+
+D3（`mka bacon`）预计需要 `out/` 再涨 60–80 GB，而 D 盘只剩 13.7 GB
+（vhdx 436.5 GB / 总 500 GB）。必须先解决空间，见磁盘方案。

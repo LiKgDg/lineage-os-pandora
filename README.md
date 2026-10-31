@@ -146,8 +146,8 @@ bash scripts/build/build_twrp.sh 10       # 前台编译，GUI 终端可见进�
 | 级别 | 内容 | 状态 |
 |---|---|---|
 | D1 | `lunch lineage_pandora-trunk_staging-userdebug` | ✅ 通过 |
-| D2 | `m nothing`（全量 soong 分析） | 🔄 修完 3 类问题后重跑 |
-| D3 | `mka bacon` 出 zip | ⏸ |
+| D2 | `m nothing`（全量 soong 分析） | ✅ 通过（30:07，0 error） |
+| D3 | `mka bacon` 出 zip | ⏸ 受 D 盘空间阻塞 |
 | D4 | 刷入并启动 | ⏸ |
 
 D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
@@ -155,6 +155,8 @@ D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 1. `hardware/xiaomi` 不在 LOS manifest，但被 `common.mk` 写进 `PRODUCT_SOONG_NAMESPACES`
 2. `vendor/xiaomi/sm8850-common` 的 blob 包过度声明依赖，触发 vendor 变体级联
 3. `external/deqp` 的 git 索引被清空，缺 3545 个文件
+4. `device/xiaomi/pandora-kernel` 缺失导致 `TARGET_NO_KERNEL_OVERRIDE` 未生效，
+   `vendor/lineage/build/tasks/kernel.mk:140` 用到空的 `TARGET_KERNEL_VERSION`
 
 机型树**无法从官方包反编译得到**——它是构建期配置，不随镜像发布，
 只能根据 `build.prop` / `vintf manifest` / `init rc` / `fstab` 反推后手写。
