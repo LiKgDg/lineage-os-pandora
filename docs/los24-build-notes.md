@@ -388,3 +388,35 @@ UUID=20f171fd-23e4-4f48-b48b-8fe358041783 /mnt/los24-repo ext4 defaults,nofail 0
 **每次 `wsl --shutdown` 之后都要跑一次**，否则 `.repo` 为空、构建会在 manifest 步骤失败。
 
 `fstab` 里用了 `nofail`，所以 VHD 未附加时不会阻塞启动，但 `.repo` 会是空目录。
+
+---
+
+## 十五、git 推送失败：环境变量里的代理端口是错的
+
+现象：
+
+```
+fatal: unable to access 'https://github.com/...': CONNECT tunnel failed, response 502
+```
+
+排查结果：
+
+| 项 | 值 |
+|---|---|
+| 环境变量 `http_proxy` | `http://127.0.0.1:52728`（**失效**） |
+| 实际可用代理 | `http://127.0.0.1:7890`（curl 走它返回 200） |
+| 直连 github | 超时（`000`） |
+
+`git` 默认读取环境变量里的代理，于是打到已经关闭的 52728 端口。
+
+**解决**：给仓库设置正确的代理端口，绕过环境变量。
+
+```bash
+git config http.proxy http://127.0.0.1:7890
+```
+
+注意该端口随代理工具启动而变，若再次 502，先确认当前可用端口：
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" --max-time 8 -x http://127.0.0.1:7890 https://github.com
+```
