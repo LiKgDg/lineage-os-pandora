@@ -420,3 +420,92 @@ git config http.proxy http://127.0.0.1:7890
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" --max-time 8 -x http://127.0.0.1:7890 https://github.com
 ```
+
+---
+
+## 十六、误杀 wslservice 导致 vhdx 句柄泄漏（事故复盘）
+
+### 现象
+
+为了给 `diskpart compact` 腾出文件锁，执行了：
+
+```
+taskkill /F /PID <wslservice>
+taskkill /F /PID <vmcompute>
+```
+
+结果 WSL 彻底起不来：
+
+```
+ERROR_SHARING_VIOLATION
+Wsl/Service/CreateInstance/MountDisk/HCS/ERROR_SHARING_VIOLATION
+```
+
+`Get-Disk` 里残留一个 1024 GB 的 `Msft Virtual Disk`（即 `ext4.vhdx` 的虚拟容量），
+文件被独占锁住。`diskpart detach`、`Dismount-DiskImage` 均无效
+（后者返回「成功」但实际没有卸载）。
+
+### 根因
+
+WSL 3.x 把发行版 vhdx 以虚拟磁盘形式挂在 Windows 存储栈上（`\\.\PhysicalDrive3`）。
+正常关闭时由 `wslservice` 与 HCS 负责 detach；**直接杀进程会跳过清理**，
+留下孤立挂载，文件锁再没人释放。
+
+### 唯一解
+
+**重启 Windows**。重启后遗留挂载消失，vhdx 从 437.2 GB 降到 318.4 GB（部分回收），
+D 盘可用从 12.7 GB 回到 133.3 GB。
+
+### 正确做法
+
+不要杀服务。用 `scripts/maintain/compact-disk.cmd`（管理员），它的顺序是：
+
+```
+wsl --shutdown  ->  diskpart attach readonly / compact / detach  ->  启动 WSL  ->  附加 .repo VHD  ->  mount -a
+```
+
+`wsl --shutdown` 走正常清理路径；杀进程不会。
+
+---
+
+## 十七、`.cmd` 脚本必须用 CRLF
+
+`.gitattributes` 里 `* text=auto eol=lf` 会把 `.cmd` 也规范成 LF。
+批处理文件用 LF 行尾时，`if %errorLevel% neq 0 (` 这类多行块会被 cmd.exe 解析错，
+表现就是双击没反应、或窗口一闪而过。
+
+已修正：
+
+```
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+```
+
+两个脚本同时改写成纯 ASCII 输出。原因有二：
+
+1. `chcp 65001` 配合中文输出在部分终端会乱码
+2. 全角引号 `“ ”` 在脚本宿主里会被当成字符串定界符，直接引发语法错误
+
+---
+
+## 十八、`.repo` 缺失时的构建降级
+
+`.repo` 搬到独立 VHD 后，若 VHD 未附加，`fstab` 的 bind mount 会落到同名空目录上
+（`nofail` 不报错），于是 `.repo` 是空的，`repo manifest -r` 失败。
+
+补丁 `scripts/maintain/patch_manifest_stub.py` 把 `build-manifest_xml.mk` 的 recipe 改成：
+
+```makefile
+@if [ -x .repo/repo/repo ] && [ -d .repo/project-objects ]; then \
+    REPO_TRACE=0 python3 .repo/repo/repo manifest -o - -r | grep ... > $@; \
+else \
+    echo "WARNING: .repo unavailable, writing stub build-manifest.xml" >&2; \
+    printf ... > $@; \
+fi
+```
+
+这样 `.repo` 不可用时写占位 XML 并告警，而不是让整个 `mka bacon` 失败。
+代价是 ROM 里的 `build-manifest.xml` 不含真实源码版本信息，个人使用无影响。
+
+还原：`python3 scripts/maintain/patch_manifest_stub.py --revert`

@@ -14,6 +14,11 @@
 *.json  text eol=lf
 *.yml   text eol=lf
 
+# Windows 批处理必须 CRLF：cmd.exe 用 LF 时 if(...) 多行块会解析失败
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+
 # 二进制：不做行尾转换
 *.img   binary
 *.dtb   binary
