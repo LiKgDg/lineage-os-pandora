@@ -647,3 +647,77 @@ m libipanat -j8        # 1 分 38 秒，直接验证 include 是否生效
 ```
 
 单模块编过之后再 `m bacon`，增量续编即可。这比「整包跑 30 分钟才发现没生效」省得多。
+
+---
+
+## 二十一、`repo sync` 不下载 LFS 对象（webview.apk 是 134 字节的指针）
+
+### 现象
+
+```
+external/chromium-webview/prebuilt/arm64/webview.apk: error: failed opening zip: Invalid file.
+error: Command '[... aapt2, 'dump', 'badging', '.../webview.apk']' returned non-zero exit status 1.
+```
+
+### 根因
+
+`repo sync` **默认不拉取 Git LFS 对象**，工作区里只留指针文件：
+
+```
+$ ls -la external/chromium-webview/prebuilt/arm64/webview.apk
+-rw-r--r-- 1 root root 134 ... webview.apk
+
+$ cat webview.apk
+version https://git-lfs.github.com/spec/v1
+oid sha256:1d2f61832b2596b0046cb82cf3634609ea866098d097a83fac27c35272ac726a
+size 260835655
+```
+
+134 字节的文本被当成 APK 喂给 aapt2，自然报 Invalid file。
+
+### 结构上的坑
+
+`external/chromium-webview/prebuilt/<arch>` 是**独立的 repo 项目**，不是子目录：
+
+```
+external/chromium-webview/prebuilt/arm64/.git
+  -> ../../../../.repo/projects/external/chromium-webview/prebuilt/arm64.git
+```
+
+所以 `git -C external/chromium-webview` 会报 "not a git repository"，
+必须进到 `prebuilt/<arch>` 里操作。每个 arch 各有一份 `.lfsconfig`，
+指向 `https://review.lineageos.org/...` 的 LFS 端点。
+
+### 修复
+
+```bash
+cd external/chromium-webview/prebuilt/arm64
+git lfs install --local
+git lfs pull
+```
+
+`git lfs pull` 之后文件变成真实大小（260,835,655 字节），`file` 识别为 APK。
+
+全树共 4 个指针文件：
+
+| 架构 | 实际大小 |
+|---|---|
+| arm64 | 260,835,655 B |
+| arm | 98,126,751 B |
+| x86_64 | 358,908,264 B |
+| x86 | 157,109,134 B |
+
+合计约 875 MB。**即使只编 arm64，也建议全部拉齐**——`chromium-webview` 模块会引用所有架构。
+
+工具：`scripts/maintain/pull_lfs_objects.sh`（自动扫描所有含 `filter=lfs` 的项目并拉取，
+`--check` 只报告不下载）。
+
+### 教训
+
+`repo sync` 成功 ≠ 文件完整。凡是 prebuilt 目录里的 apk/jar/zip/so，
+体积异常小（几百字节）就要怀疑是 LFS 指针：
+
+```bash
+find . -size -1k \( -name "*.apk" -o -name "*.jar" -o -name "*.so" \) \
+  -not -path "./out/*" | xargs head -c 100 2>/dev/null | grep -l "git-lfs"
+```
