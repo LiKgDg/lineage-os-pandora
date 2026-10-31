@@ -890,3 +890,50 @@ Treble 要求 vendor 分区不能随意扩充 public type，否则系统升级�
 报错信息里给出的两个 review 链接是官方示例，格式照抄即可。
 
 `ignore.cil` 是**逐版本独立**的，不能只往旧版本文件里加——新版本的检查只读新版本目录。
+
+---
+
+## 二十五、`check_elf_file`：DT_NEEDED 与 shared_libs 不一致
+
+### 现象
+
+```
+FAILED: .../libwfdcommonutils.so.check_elf_file
+vendor/xiaomi/sm8850-common/proprietary/system_ext/lib64/libwfdcommonutils.so:
+error: DT_NEEDED "libdng_sdk.so" is not specified in shared_libs.
+```
+
+### 来龙去脉（自己挖的坑）
+
+早期为了解决 vendor 变体级联（见第十一节），把 `libwfdcommonutils` 的
+`shared_libs` 里那条 `libdng_sdk` 注释掉了。当时 soong 分析确实通过了，
+但 `check_elf_file` 会在编译后校验：prebuilt `.so` 的 `DT_NEEDED` 条目
+必须在 `shared_libs` 里声明。删了声明，校验就不过。
+
+**教训**：删依赖只是把错误从「soong 分析期」推迟到「ELF 校验期」，问题没解决。
+
+### 修复
+
+`scripts/maintain/fix_wfd_elfcheck.py`：给该模块加 `check_elf_files: false`。
+
+```bp
+cc_prebuilt_library_shared {
+    name: "libwfdcommonutils",
+    ...
+    system_ext_specific: true,
+    check_elf_files: false,
+}
+```
+
+这个 blob 包里**已有 29 处** `check_elf_files: false`，说明这是既定做法：
+对「依赖无法在 AOSP 侧提供」的 prebuilt，关掉 ELF 校验是标准处理。
+
+验证：`m libwfdcommonutils -j8` → 通过。
+
+### 遗留风险
+
+`libdng_sdk.so` 在运行时确实不存在于镜像里。如果 `libwfdcommonutils.so`
+真的在加载时解析该符号，WFD 功能会失效。这属于**运行时问题**，
+构建期无法验证，需刷机后实测。
+
+`check_elf_files: false` 只跳过构建期校验，不改变二进制内容。
