@@ -620,3 +620,20 @@ find . -name "msm_ipa.h" -not -path "./out/*"
 # 声明的 header_libs 是怎么定义的
 grep -rn -A10 'name: "qti_ipa_kernel_headers"' --include=Android.bp . | grep -v "^./out/"
 ```
+
+### 踩坑：新增 Android.bp 模块后整包构建仍用旧分析图
+
+第一次应用修复后直接 `m bacon` 续编，**错误照旧**。查证发现：
+
+- 新 `Android.bp` 已进 `out/.module_paths/Android.bp.list`
+- 但失败目标的编译命令里没有新模块的 `-I` 路径
+
+原因是那轮构建的 soong 分析发生在文件创建前后，模块没进依赖图。
+
+**验证方式：先单独编目标模块，再续整包。**
+
+```bash
+m libipanat -j8        # 1 分 38 秒，直接验证 include 是否生效
+```
+
+单模块编过之后再 `m bacon`，增量续编即可。这比「整包跑 30 分钟才发现没生效」省得多。
