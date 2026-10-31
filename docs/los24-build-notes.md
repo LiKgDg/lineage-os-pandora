@@ -521,6 +521,16 @@ D3 分三轮暴露出来：
 |---|---|---|---|
 | 1 | `bootable/recovery/volume_manager/PublicVolume.cpp:65` | `no member named 'replace' in namespace 'std'` | 补 `<algorithm>` |
 | 2 | `vendor/qcom/opensource/vibrator/aidl/VibratorSelector/VibratorSelector.cpp:43` | `implicit instantiation of undefined template 'std::shared_ptr<VibratorSelector>'` | 补 `<memory>`、`<vector>` |
+| 4 | `system/vold/model/PublicVolume.cpp:73` | `no member named 'replace' in namespace 'std'` | 补 `<algorithm>` |
+| 5 | `bootable/recovery/volume_manager/include/volume_manager/VolumeManager.h:36` | `no template named 'vector' in namespace 'std'`，连带 `-Woverloaded-virtual` | 补 `<vector>` |
+
+注意第 5 轮：同一个头文件缺失会**连带触发别的错误**。`VolumeManager.h` 缺 `<vector>` 时，
+基类 `VolumeWatcher::handleEvent` 的签名解析失败，导致派生类 `VolumeClient::handleEvent`
+被判定为「隐藏了重载的虚函数」而报 `-Werror,-Woverloaded-virtual`。
+补上 `<vector>` 后两个错误一起消失——**修第一个报错，往往连带修掉后面几个**。
+
+另外 `PublicVolume.cpp` 在 `bootable/recovery` 和 `system/vold` 各有一份，是不同副本，
+两处都要补。
 
 两处都是**上游代码的疏漏**，与 pandora 机型树无关。
 
