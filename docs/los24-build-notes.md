@@ -509,3 +509,49 @@ fi
 代价是 ROM 里的 `build-manifest.xml` 不含真实源码版本信息，个人使用无影响。
 
 还原：`python3 scripts/maintain/patch_manifest_stub.py --revert`
+
+---
+
+## 十九、D3 编译期缺头文件（libc++ 取消传递包含）
+
+LOS 24 用的 libc++ 移除了传递包含，一批老代码里「靠别的头文件带进来」的标准库符号开始报错。
+D3 分三轮暴露出来：
+
+| 轮次 | 失败点 | 报错 | 修复 |
+|---|---|---|---|
+| 1 | `bootable/recovery/volume_manager/PublicVolume.cpp:65` | `no member named 'replace' in namespace 'std'` | 补 `<algorithm>` |
+| 2 | `vendor/qcom/opensource/vibrator/aidl/VibratorSelector/VibratorSelector.cpp:43` | `implicit instantiation of undefined template 'std::shared_ptr<VibratorSelector>'` | 补 `<memory>`、`<vector>` |
+
+两处都是**上游代码的疏漏**，与 pandora 机型树无关。
+
+### 工具
+
+```bash
+# 专用（带锚点断言）
+python3 scripts/maintain/fix_recovery_algorithm.py [--revert]
+
+# 通用：给任意源文件补标准头
+python3 scripts/maintain/add_include.py <相对源码根的路径> <头1>[,<头2>] [--revert]
+
+# 例
+python3 scripts/maintain/add_include.py \
+    vendor/qcom/opensource/vibrator/aidl/VibratorSelector/VibratorSelector.cpp \
+    memory,vector
+```
+
+`add_include.py` 的行为：已包含则跳过（幂等）；插入到第一个 include 区块内最后一条
+`#include <...>` 之后；插入行带 `// pandora-fix: missing std header` 标记，
+`--revert` 按标记精确撤销。
+
+### 经验
+
+这类错误是**逐个暴露**的——每次修完一个，编译推进几十个百分点后再撞下一个。
+好在 ninja 会跳过已完成的目标，每轮续编只重编失败点之后的增量，总耗时会收敛。
+
+排查套路：
+
+```bash
+grep -A30 "<出错的 .o 路径>$" /root/d3.log | grep -E "error:|note:"
+```
+
+看到 `undefined template 'std::xxx'` 或 `no member named`，基本都是缺对应的标准头。
