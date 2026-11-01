@@ -1212,3 +1212,80 @@ bootloader 模式的 fastboot 只认物理分区表，看不到它们。
 内核替换必须**整体原子完成**：kernel + vendor_dlkm + system_dlkm + vendor_boot
 四个部分任一遗漏都会导致 KMI 不匹配而无法启动。
 刷之前应确认目标分区是物理还是逻辑，避免刷到一半中断。
+
+---
+
+## 三十、只刷物理分区会导致系统与 recovery 双双无法启动
+
+### 事故经过
+
+设备线刷 OS4.0.5.0（A17 原厂）后，按「阶段 1 物理分区 + 阶段 2 逻辑分区」的方式刷 LOS：
+
+```
+阶段 1（bootloader 模式，已执行）：
+  boot init_boot dtbo vendor_boot vbmeta vbmeta_system   ← 全部替换为 LOS 版本
+
+阶段 2（fastbootd，未执行）：
+  system system_ext product vendor odm vendor_dlkm system_dlkm
+```
+
+结果：系统进不去，recovery 也进不去，只能进 fastboot。
+
+### 根因
+
+两个独立原因叠加：
+
+1. **AVB 校验链断裂**
+   `vbmeta` / `vbmeta_system` 被替换为 LOS 签名版本，而 system/vendor/odm
+   仍是小米密钥签名的原厂镜像。AVB 用新 vbmeta 校验旧分区 → 失败 → 拒绝启动。
+
+2. **ramdisk 与系统不匹配**
+   `boot` / `init_boot` / `vendor_boot` 是 LOS 版本，ramdisk 期望 LOS 的 system，
+   而 system 还是原厂。
+
+recovery 同样受 vbmeta 影响——它也要过 AVB 校验。
+
+### 恢复
+
+只刷了 6 个物理分区，system/vendor/odm **从未被触碰**，仍是原厂。
+所以只需从官包恢复那 6 个：
+
+```bash
+# 从 OS4.0.5.0 完整包提取
+payload_dump.py pandora-ota_full-OS4.0.5.0...zip <out> \
+    boot init_boot dtbo vendor_boot vbmeta vbmeta_system
+
+# bootloader 模式刷回（vbmeta 放最后）
+fastboot flash boot / init_boot / dtbo / vendor_boot / vbmeta_system / vbmeta
+fastboot reboot
+```
+
+恢复后验证：
+
+```
+ro.build.fingerprint  Xiaomi/pandora/pandora:17/CP2A.260605.016/OS4.0.5.0.XBLCNXM:user/release-keys
+uname -r              6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+ro.boot.verifiedbootstate  orange
+```
+
+系统正常启动，TWRP 3.7.1 也能进。
+
+### 正确做法
+
+**不要分两阶段刷**。这台机器的 `fastboot reboot fastboot` 从 bootloader
+进不了 fastbootd（实测只重启回 bootloader），正确路径是：
+
+```
+1. 设备在可启动的原厂系统里
+2. adb reboot fastboot          → fastbootd（is-userspace: yes）
+3. fastboot flash <全部 13 个分区>   ← fastbootd 既能刷逻辑分区也能刷物理分区
+4. fastboot reboot
+```
+
+关键点：**vbmeta 必须与 system/vendor/odm 一起刷**，不能只刷一半。
+要么全刷 LOS，要么全留原厂。
+
+### 遗留
+
+当前设备：原厂 A17 系统 + 原厂 A17 内核 + TWRP 3.7.1 recovery，可正常使用。
+LOS 的 13 个分区镜像已备好在 `D:/WSL/out/pandora/los1101/`（4.31 GB）。
