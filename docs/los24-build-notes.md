@@ -1107,3 +1107,66 @@ A16 的选择是经过验证能编译的，沿用它能避开所有「新增 blo
 | `scripts/maintain/drop_paths.py` | 按相对路径剔除 |
 | `scripts/flash/backup_partitions.sh` | 备份关键分区到 PC |
 | `scripts/flash/flash_fastbootd.sh` | fastbootd 批量刷入 |
+
+---
+
+## 二十八、替换内核：A16 GKI → A17 GKI
+
+### 发现
+
+排查卡开机时忽略了内核。实际检查构建产物：
+
+```
+Linux version 6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k
+```
+
+内核是 **A16 GKI**（`android16-5`），而 system 是 Android 17（SDK 37）。
+这比 vendor HAL 不匹配更可能是卡开机的原因。
+
+A17 官包（OS4.0.5.0）的内核：
+
+```
+Linux version 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+```
+
+版本跨度 6.12.23 → 6.12.69，GKI 分支 `android16-5` → `android16-6`。
+GKI 分支名仍带 android16（6.12 LTS 的分支命名），但这是 A17 实际出货的内核。
+
+### 内核必须整体替换
+
+KMI 要求内核与模块严格匹配，所以 kernel / vendor_dlkm / system_dlkm /
+vendor_ramdisk 的模块必须一起换。
+
+### 做法
+
+`scripts/build/make_pandora_kernel_a17.sh`，流程与 A16 版一致：
+
+1. `payload_dump.py` 提取 boot / vendor_boot / dtbo / vendor_dlkm / system_dlkm
+2. `unpack_bootimg.py` 解出内核与 vendor_boot 的 dtb / vendor_ramdisk
+3. vendor_ramdisk：`lz4 -d` + `cpio` 解包
+4. vendor_dlkm / system_dlkm：EROFS，用 `fsck.erofs --extract`
+5. `split_dtb.py` 拆分 dtb 并校验拼接还原一致
+6. 组装到 `device/xiaomi/pandora-kernel`
+
+结果：
+
+| 项 | A16 | A17 |
+|---|---|---|
+| kernel | 39,963,136 | 41,511,424 |
+| dtbo.img | 23,068,672 | 23,068,672 |
+| dtb 文件 | 8 | 12 |
+| vendor_ramdisk .ko | 416 | 461 |
+| vendor_dlkm .ko | 374 | 402 |
+| system_dlkm .ko | 103 | 103 |
+
+### 隔离变量
+
+为单独验证「内核版本」这一个假设，**恢复了 A16 blob 包**
+（`/root/backup-sm8850-a16`，620 MB），只改内核。
+
+构建通过，产物 `lineage-24.0-20261101-UNOFFICIAL-pandora.zip`（1,189,616,135 字节），
+包内 boot.img 内核经解包验证为 `6.12.69-android16-6`。
+
+### 备份
+
+原 A16 内核目录备份在 `/root/backup-pandora-kernel-a16`（262 MB）。
