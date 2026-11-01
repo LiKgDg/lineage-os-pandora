@@ -1170,3 +1170,45 @@ vendor_ramdisk 的模块必须一起换。
 ### 备份
 
 原 A16 内核目录备份在 `/root/backup-pandora-kernel-a16`（262 MB）。
+
+---
+
+## 二十九、vendor_dlkm / system_dlkm 是逻辑分区，必须用 fastbootd
+
+### 现象
+
+在 bootloader 模式（`is-userspace: no`）下刷内核相关分区：
+
+```
+[1/5] boot         OK
+[2/5] dtbo         OK
+[3/5] vendor_boot  OK
+[4/5] vendor_dlkm  FAILED (remote: '(vendor_dlkm_a) No such partition.')
+```
+
+### 原因
+
+`vendor_dlkm` 和 `system_dlkm` 在这台机器上是 **super 内的逻辑分区**，
+bootloader 模式的 fastboot 只认物理分区表，看不到它们。
+必须先进 fastbootd（`is-userspace: yes`）才能刷。
+
+### 后果
+
+刷了 `boot`（A17 内核 6.12.69）但 `vendor_dlkm` 没刷进去，
+设备变成 **A17 内核 + A16 模块**，KMI 不匹配，模块无法加载，
+卡在小米开机第一屏，TWRP 也进不去。
+
+### 正确顺序
+
+```
+1. fastboot flash boot / dtbo / vendor_boot     ← bootloader 模式可以
+2. fastboot reboot fastboot                     ← 进 fastbootd
+3. fastboot flash vendor_dlkm / system_dlkm     ← 逻辑分区必须在这里刷
+4. fastboot reboot
+```
+
+### 教训
+
+内核替换必须**整体原子完成**：kernel + vendor_dlkm + system_dlkm + vendor_boot
+四个部分任一遗漏都会导致 KMI 不匹配而无法启动。
+刷之前应确认目标分区是物理还是逻辑，避免刷到一半中断。
