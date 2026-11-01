@@ -1020,3 +1020,90 @@ LOS 24 的 `m bacon` 产出的是 payload 格式 OTA，不是分散的 img 文�
 - **WFD 运行时**：`libwfdcommonutils.so` 依赖的 `libdng_sdk.so` 不在镜像里（见第二十五节）。
 - **overlay 数值**：继承自 popsicle，需按 stock 核对。
 - **触摸方向**：未加 idc，依赖驱动层处理，需实测。
+
+---
+
+## 二十七、从 A16 blobs 迁移到 A17 blobs
+
+### 起因
+
+设备刷入用 A16 blobs 构建的 LOS 后卡在开机动画，清 data 后仍然卡住。
+排查发现：
+
+```
+system/build.prop   ro.build.version.sdk=37   release=17      ← 系统是 Android 17
+vendor/build.prop   release_or_codename=Baklava               ← vendor 二进制来自 Android 16
+```
+
+LOS 24 本身是 **Android 17**（SDK 37），而我们用的 blobs 来自 OS3.0.318.0（Android 16，
+Baklava）。A16 vendor HAL 配 A17 framework，是合理的怀疑方向。
+
+### 新官包
+
+`pandora-ota_full-OS4.0.5.0.XBLCNXM-user-17.0-a4da788249.zip`，8.5 GB，
+**58 个分区**（含 xbl/abl/tz/modem 等固件，A16 包只有 15 个）。
+
+分区规模对比：
+
+| 分区 | A16 | A17 |
+|---|---|---|
+| odm | 31 MB | 3.6 GB |
+| product | 1.7 GB | 4.4 GB |
+| system | 1.05 GB | 932 MB |
+| vendor | 673 MB | 562 MB |
+
+`odm` 暴涨的原因是 A17 把相机 HAL、虹软算法库（`libarcsoft_*.so` 单个 230 MB）、
+AI 模型（`.minn`/`.bin`）都放在了 odm。
+
+### 两种提取策略与踩坑
+
+**策略一：全量复制**（`rebuild_blobs_a17.sh`）——失败，踩了四个坑：
+
+| 问题 | 数量 | 处理 |
+|---|---|---|
+| `qcril_config_database` 依赖未定义模块 | 2 | 补 SQL `filegroup` |
+| 打包冲突（`libbinder.so`/`libc++.so`/`bin/awk`…） | 277 | 剔除 |
+| 残留冲突（`etc/ueventd.rc` 等在多个分区都有） | 5 | 脚本改为删全部匹配 |
+| 32 位模块不存在（64 位-only 构建） | 135 | 剔除 |
+| `symbols/` 下 ninja 重复规则 | 150+ | 剔除 |
+
+**核心问题**：A17 的 vendor 分区包含大量 **AOSP 自己会编译的库**。
+A16 的 blob 清单是**手工精选**的（vendor 1477 个文件、odm 只有 136 个），
+全量复制必然撞车。
+
+**策略二：外科式更新**（`rebuild_blobs_a17_surgical.sh`）——采用
+
+保持 A16 的文件选择范围，只把二进制换成 A17 版本：
+
+```
+vendor:     A17 1363 个, 沿用 A16 114 个
+odm:        A17 128 个,  沿用 A16 8 个
+system_ext: A17 104 个,  沿用 A16 5 个
+product:    A17 11 个
+system:     A17 4 个
+合计 1737 个（A17: 1610, A16: 127），636 MB
+```
+
+A16 的选择是经过验证能编译的，沿用它能避开所有「新增 blob 与 AOSP 模块撞车」的问题。
+
+### 关键教训
+
+1. **全量复制 stock 分区当 blob 包是错的**。stock 分区里包含 AOSP 自编译的组件，
+   LineageOS 的 blob 清单必须精选。
+2. **A17 的 `system.img` 是嵌套布局**：镜像根是 `/`，真正的 system 内容在
+   `<mount>/system/` 下。`vendor`/`odm`/`system_ext`/`product` 则是平铺。
+3. **WSL 空闲关闭会丢 loop 挂载**。所有挂载 + 提取必须在同一个 WSL 会话内完成。
+4. ninja 的规则可能被换行拆开（`build $\n  out/...`），用行首锚点做扫描会漏。
+
+### 工具
+
+| 脚本 | 用途 |
+|---|---|
+| `scripts/device/rebuild_blobs_a17.sh` | 全量提取（含 odm 相机排除） |
+| `scripts/device/rebuild_blobs_a17_surgical.sh` | 按 A16 清单更新二进制 |
+| `scripts/maintain/fix_rildb_filegroups.py` | 补 qcril SQL filegroup |
+| `scripts/maintain/drop_conflicting_blobs.py` | 按打包冲突剔除 |
+| `scripts/maintain/drop_modules_by_name.py` | 按模块名剔除 |
+| `scripts/maintain/drop_paths.py` | 按相对路径剔除 |
+| `scripts/flash/backup_partitions.sh` | 备份关键分区到 PC |
+| `scripts/flash/flash_fastbootd.sh` | fastbootd 批量刷入 |
