@@ -1,6 +1,6 @@
 # pandora (Xiaomi 17 Pro) ODM properties
 #
-# 全部取自 stock（OS3.0.318.0.WBLCNXM）实测：
+# 全部取自 stock（OS4.0.5.0.XBLCNXM）实测：
 #   adb shell getprop / cat /odm/build.prop
 # 采集时间 2026-10-31
 

@@ -22,7 +22,7 @@ PRODUCT_MODEL := 25098PN5AC
 PRODUCT_MANUFACTURER := xiaomi
 
 # 取自 stock：Xiaomi/pandora/pandora:16/BP2A.250605.031.A3/OS3.0.318.0.WBLCNXM
-BUILD_FINGERPRINT := Xiaomi/pandora/pandora:16/BP2A.250605.031.A3/OS3.0.318.0.WBLCNXM:user/release-keys
+BUILD_FINGERPRINT := Xiaomi/pandora/pandora:17/CP2A.260605.016/OS4.0.5.0.XBLCNXM:user/release-keys
 
 # GMS
 PRODUCT_GMS_CLIENTID_BASE := android-xiaomi

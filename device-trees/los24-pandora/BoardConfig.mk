@@ -19,8 +19,8 @@ TARGET_ODM_PROP += $(DEVICE_PATH)/configs/properties/odm.prop
 
 # ── 预编译内核 ────────────────────────────────────────────────────
 # 内核、dtbo、模块放在独立仓库 device/xiaomi/pandora-kernel。
-# GKI 内核版本与 popsicle 相同（6.12.23-android16-5-g75e9b1c7ae7c-
-# abogki463945075-4k），差异只在板级 dtbo。
+# GKI 内核 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k，
+# 取自 OS4.0.5.0.XBLCNXM 的 boot.img，差异只在板级 dtbo。
 # 该仓库尚未生成时跳过以下配置，以便先跑通 lunch 与 soong 分析。
 ifneq ($(wildcard $(KERNEL_PATH)/kernel),)
 BOARD_PREBUILT_DTBOIMAGE := $(KERNEL_PATH)/dtbo.img
@@ -41,7 +41,7 @@ PRODUCT_COPY_FILES += \
     $(call find-copy-subdir-files,*,$(KERNEL_PATH)/vendor_dlkm/,$(TARGET_COPY_OUT_VENDOR_DLKM)/lib/modules) \
     $(call find-copy-subdir-files,*,$(KERNEL_PATH)/vendor_ramdisk/,$(TARGET_COPY_OUT_VENDOR_RAMDISK)/lib/modules) \
     $(call find-copy-subdir-files,*,$(KERNEL_PATH)/system_dlkm_flatten/,$(TARGET_COPY_OUT_SYSTEM_DLKM)/flatten/lib/modules) \
-    $(call find-copy-subdir-files,*,$(KERNEL_PATH)/system_dlkm/,$(TARGET_COPY_OUT_SYSTEM_DLKM)/lib/modules/6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k)
+    $(call find-copy-subdir-files,*,$(KERNEL_PATH)/system_dlkm/,$(TARGET_COPY_OUT_SYSTEM_DLKM)/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k)
 endif
 
 # Inherit from the proprietary version
