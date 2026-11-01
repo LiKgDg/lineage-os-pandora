@@ -1428,3 +1428,48 @@ androidboot.serialconsole=0        ← LOS 缺失
 ### 设备状态
 
 已恢复原厂 A17（recovery + vbmeta 也刷回带校验版本），可正常使用。
+
+---
+
+## 三十三、关闭全部 AVB 校验后仍然失败
+
+### 测试
+
+对 `vbmeta` 和 `vbmeta_system` **同时**加 `--disable-verification` 后刷入 LOS 全部
+11 个分区（fstab 里 system/system_ext 的挂载参数是 `avb=vbmeta_system`，
+之前只关了 `vbmeta`，`vbmeta_system` 的校验仍在生效）。
+
+### 结果
+
+仍然卡在小米第一屏，约 160 秒后回落到 fastboot。AVB 不是原因。
+
+### 至此已排除的全部假设
+
+| # | 假设 | 验证方式 | 结果 |
+|---|---|---|---|
+| 1 | 内核版本不匹配 | 二进制 sha256 与原厂完全一致 `ed9e27aa...` | 排除 |
+| 2 | boot.img 结构错误 | 与原厂同构（kernel 41.5 MB / ramdisk 0） | 排除 |
+| 3 | vendor_boot 内容缺失 | 解包 468 文件 / 461 模块，清单完全一致 | 排除 |
+| 4 | init_boot 结构异常 | 5 文件，与 GKI 惯例一致 | 排除 |
+| 5 | first_stage fstab 错误 | 仅 `mi_ext`/overlay 等 `nofail` 项差异 | 排除 |
+| 6 | AVB 校验拦截 | 两个 vbmeta 全部 `--disable-verification` | 排除 |
+| 7 | data 加密不兼容 | 刷前 `fastboot -w` | 排除 |
+| 8 | 固件版本不匹配 | 已线刷 OS4.0.5.0 全量 | 排除 |
+| 9 | blobs 版本不匹配 | 原厂 A17 的 vendor 自己也报 `release=16` | 排除 |
+| 10 | vendor 缺关键文件 | 缺 35 个文件（AI 模型/GPU 缓存/性能分析），非启动路径 | 排除 |
+
+### 结论
+
+外部可验证的假设已全部排除。启动链与原厂实质等价，却仍在 init 阶段失败。
+
+**继续盲试的收益已经为零**。剩下的问题在 LOS 的 system/vendor 内容里，
+必须有日志才能定位。取日志需要以下任一条件：
+
+1. **可用的 recovery 日志通道**——LOS recovery 起不来，TWRP 可以起但
+   `/sys/fs/pstore` 为空（内核未配置 ramoops）
+2. **串口/UART**——需要拆机
+3. **A17 设备树**——换一个正确的起点，而不是继续修补 A16 派生的配置
+
+### 设备状态
+
+已恢复原厂 A17，启动正常。
