@@ -1473,3 +1473,50 @@ androidboot.serialconsole=0        ← LOS 缺失
 ### 设备状态
 
 已恢复原厂 A17，启动正常。
+
+---
+
+## 三十四、A17 配置重新构建完成
+
+### 配置变更
+
+| 文件 | 项 | A16 | A17 |
+|---|---|---|---|
+| `BoardConfig.mk` | system_dlkm 路径 | `6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k` | `6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k` |
+| `lineage_pandora.mk` | BUILD_FINGERPRINT | `:16/BP2A.250605.031.A3/OS3.0.318.0.WBLCNXM` | `:17/CP2A.260605.016/OS4.0.5.0.XBLCNXM` |
+| `configs/properties/odm.prop` | 来源注释 | OS3.0.318.0 | OS4.0.5.0 |
+
+### 构建结果
+
+```
+lineage-24.0-20261101-UNOFFICIAL-pandora.zip   1,189,706,189 字节
+sha256 3820ca1657b3ed1f34483e52e47d9df5...
+ninja: 4m36.56s Build Succeeded
+```
+
+产物验证：
+
+```
+ro.build.fingerprint = Xiaomi/pandora/pandora:17/CP2A.260605.016/OS4.0.5.0.XBLCNXM:user/release-keys
+system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+vendor_dlkm .ko = 402
+kernel = 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+```
+
+### 新增设备树工程
+
+`device-trees/pandora-dt/`，按 `LL-fan/xiaomi-17-pro-max-device-tree` 的流程为
+pandora 重建，来源为 OS4.0.5.0 固件：
+
+| 文件 | 行数 |
+|---|---|
+| `dts/xiaomi-pandora-common.dtsi` | 28,567 |
+| `dts/overlays/board-pandora-overlay.dts` | 25,138 |
+| `dts/xiaomi-pandora.dts`（fdtoverlay 合并） | 50,917 |
+
+`make verify`：4 PASS / 0 FAIL。
+
+### 注意
+
+本次构建解决了配置层面的 A17 对齐，但**不代表能启动**——前面已确认
+启动失败不是配置问题（十条假设全部排除）。设备当前为原厂 A17 可用状态。
