@@ -1289,3 +1289,82 @@ ro.boot.verifiedbootstate  orange
 
 当前设备：原厂 A17 系统 + 原厂 A17 内核 + TWRP 3.7.1 recovery，可正常使用。
 LOS 的 13 个分区镜像已备好在 `D:/WSL/out/pandora/los1101/`（4.31 GB）。
+
+---
+
+## 三十一、LOS 完整刷入后重启循环；用 lpmake 打包 super 恢复
+
+### 现象
+
+在原厂 A17 基础上，于 fastbootd 一次性刷入 LOS 全部 13 个分区，
+并补齐 recovery（凑齐完整 AVB 签名集），结果：
+
+```
+第一个小米动画 → 等几秒 → 自动重启 → 循环
+```
+
+不是卡住，是**重启循环**，说明内核起来了但几秒后 panic/reset。
+
+### 已排除的因素
+
+| 假设 | 证据 | 结论 |
+|---|---|---|
+| 内核版本不匹配 | 原厂 A17 内核正是 `6.12.69-android16-6`，与我们编进 LOS 的完全一致；原厂系统用同一内核正常启动 | 排除 |
+| 固件版本不匹配 | 已线刷 OS4.0.5.0 全量 | 排除 |
+| AVB 校验链断裂 | 补齐 recovery 后仍循环 | 排除 |
+| data 加密不兼容 | 刷前已 `fastboot -w` | 排除 |
+
+剩下的方向：LOS 的 `boot` / `init_boot` / `vendor_boot` ramdisk，
+或 `vendor_dlkm` / `system_dlkm` 模块加载失败（KMI 要求严格匹配）。
+
+### 恢复：lpmake 打包原厂 super
+
+bootloader 模式下 `fastboot reboot fastboot` 进不了 fastbootd（实测无效），
+逻辑分区又只能在 fastbootd 刷。突破办法：**`super` 是物理分区**，
+可以把原厂逻辑分区打包成 super.img 整体刷回。
+
+```bash
+# 1. 从官包提取 7 个逻辑分区
+payload_dump.py pandora-ota_full-OS4.0.5.0...zip <out> \
+    system system_ext product vendor odm vendor_dlkm system_dlkm
+
+# 2. lpmake 打包（设备 super 大小 0x320000000 = 13,421,772,800）
+lpmake --device-size 13421772800 \
+       --metadata-size 65536 \
+       --metadata-slots 2 \
+       --group main:13421772800 \
+       --partition system_a:readonly:<sz>:main --image system_a=system.img \
+       ... \
+       --output super.img --sparse
+
+# 3. bootloader 模式刷回
+fastboot flash boot/init_boot/dtbo/vendor_boot/recovery/vbmeta_system/vbmeta
+fastboot flash super super.img
+fastboot reboot
+```
+
+产物：稀疏镜像 11,033,512,324 字节，展开正好 13,421,772,800 字节。
+校验稀疏头 `3aff26ed`，`file` 识别为 `Android sparse image, version 1.0`。
+
+注意 `lpdump` **读不了稀疏镜像**，会报 `invalid geometry magic signature`，
+这是正常的，不是镜像损坏。
+
+### 恢复结果
+
+```
+ro.build.fingerprint  Xiaomi/pandora/pandora:17/CP2A.260605.016/OS4.0.5.0.XBLCNXM:user/release-keys
+uname -r              6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+ro.boot.verifiedbootstate  orange
+```
+
+完整恢复，首次启动约 3 分 20 秒（super 整体重写后需重新初始化）。
+
+### 工具
+
+| 脚本 | 用途 |
+|---|---|
+| `scripts/flash/build_stock_super.sh` | lpmake 打包原厂 super.img |
+| `scripts/flash/restore_stock_full.sh` | 物理分区 + super 完整恢复 |
+| `scripts/flash/restore_stock_a17.sh` | 仅物理分区恢复 |
+| `scripts/flash/flash_los_full.sh` | fastbootd 一次性刷 LOS 13 分区 |
+| `scripts/flash/flash_los_with_recovery.sh` | 补齐 LOS recovery 的物理分区 |
