@@ -1368,3 +1368,63 @@ ro.boot.verifiedbootstate  orange
 | `scripts/flash/restore_stock_a17.sh` | 仅物理分区恢复 |
 | `scripts/flash/flash_los_full.sh` | fastbootd 一次性刷 LOS 13 分区 |
 | `scripts/flash/flash_los_with_recovery.sh` | 补齐 LOS recovery 的物理分区 |
+
+---
+
+## 三十二、逐字节比对：启动链无问题，问题在 init 之后的阶段
+
+### 方法
+
+把 LOS 产物与原厂 A17 的同名镜像逐个解开对比。
+
+### 结果
+
+| 项 | 原厂 | LOS | 结论 |
+|---|---|---|---|
+| `boot.img` 内核 | 41,511,424 `ed9e27aa...` | 41,511,424 `ed9e27aa...` | **完全相同** |
+| `boot.img` 结构 | kernel 41.5 MB / ramdisk 0 | 相同 | 一致 |
+| `vendor_boot` ramdisk | 468 文件 / 461 .ko | 468 文件 / 461 .ko | **内容一致** |
+| `vendor_boot` dtb | 6,557,139 | 6,557,139 | 一致 |
+| `recovery.img` | kernel 0 / ramdisk 28.3 MB | kernel 0 / ramdisk 18.9 MB | 结构一致（本机 recovery 是纯 ramdisk） |
+
+`vendor_boot` ramdisk 体积差 3.7 MB（22.1 vs 18.5）只是 lz4 压缩率不同，
+解包后文件数和模块清单**完全一致**。
+
+### 仅有的两处差异
+
+1. **bootconfig 少两项**
+
+```
+androidboot.vendor.qspa=true       ← LOS 缺失
+androidboot.serialconsole=0        ← LOS 缺失
+```
+
+2. **init_boot ramdisk 多一个 `first_stage_ramdisk/` 目录**（GKI 通用 ramdisk 的正常形态）
+
+这两项都不足以解释「内核起来几秒后 reset」。
+
+### 结论
+
+启动链（kernel / boot / vendor_boot / init_boot / recovery）与原厂**实质等价**，
+却无法启动。说明失败发生在 **init 之后**：
+
+- init 无法挂载 `/system` 或 `/vendor`
+- 或 sepolicy 拦截关键服务
+- init panic → 内核 panic → 硬件复位 → 表现为「几秒后重启循环」
+
+而 `fstab.qcom`、sepolicy、init rc 这些正是**设备树提供**的内容，当前设备树
+是从 popsicle 派生的 **A16 时代配置**。
+
+### 判断
+
+继续在 A16 设备树上打补丁的收益已经很低。要真正跑起来，需要 **A17 设备树**：
+
+- `fstab.qcom` 按 A17 的分区/verity 要求重写
+- sepolicy 按 A17 的 `plat_pub_versioned.cil` 重新对齐
+- init rc 补齐 A17 新增的服务与属性
+
+这正是用户提到的「GitHub 仓库 16/17 分支」的意义所在。
+
+### 设备状态
+
+已恢复原厂 A17（recovery + vbmeta 也刷回带校验版本），可正常使用。
