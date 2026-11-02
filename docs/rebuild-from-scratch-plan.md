@@ -105,3 +105,40 @@ CONFIG_KSU_SUSFS=y  (SUSFS 全家桶)
    **开 `CONFIG_ANDROID_RAM_CONSOLE` + 去掉 `console=ttynull`**（日志的目标）。
 3. 用 LOS 内置 clang 编译，产出 boot.img。
 4. fork 到 `LiKgDg/android_kernel_xiaomi_sm8850`。
+
+## 进度记录二（2026-11-03 05:45）—— 路线 1 落地与阻塞
+
+### 已完成：切回干净基线
+
+- 从 LokumKernel 提交历史定位到干净基线 **`6edeb476`**
+  （`ANDROID: import Xiaomi SM8850 stock GKI baseline`，孤儿 commit，parents=[]）
+- 用 `gh api .../tarball/6edeb476` 拉取该 commit 的干净源码（绕过坏代理）
+- 验证干净：`xiaomi_sm8850_bootimg.fragment` 只剩 **一行 `CONFIG_RFKILL=y`**，
+  KSU/SUSFS/LOCALVERSION 全部消失 —— 这是小米官方 SM8850 定制的全部
+- 已放入 LOS 标准路径 `/root/los24/kernel/xiaomi/sm8850`（1.7 GB，62 symlink，Linux 6.12.23）
+
+### 关键结论：小米 SM8850 内核 = GKI + 一行 RFKILL
+
+小米官方放出的 SM8850 内核定制**只有 `CONFIG_RFKILL=y`**（为兼容 stock vendor_dlkm）。
+内核本体与上游 Android common kernel 6.12.23 几乎一致，小米的差异都在 vendor_dlkm 模块里。
+
+### 阻塞：内核无法独立编译（Kleaf 环境缺失）
+
+内核仓的 `BUILD.bazel` 顶部 `load("//build/kernel/kleaf:...")`，但：
+
+1. 内核仓内**没有 `build/` 目录** —— kleaf 假设由「LOS 完整树」提供
+2. LOS 树里 **`build/kleaf` 不存在**（内核构建部分未同步）
+3. bazel 二进制在 `prebuilts/kernel-build-tools/bazel/linux-x86_64/bazel-8.0.0`，但无 bazelisk、无 kleaf 源码
+
+即：**当前 LOS24 树的内核构建链路（soong → kleaf → bazel）没配齐**，
+之前用预编译内核正是因为 `TARGET_NO_KERNEL_OVERRIDE := true` 绕过了这条链。
+
+### 待办（需要决策）
+
+要自编内核，二选一：
+- **A1**：补全 kleaf（`repo sync build/kernel` 或手动拉 build/kernel 仓），
+  走 soong 正统内核编译 —— 工作量大，但一劳永逸
+- **A2**：绕过 soong，用 `kernel-build-tools` 里的老式 `build/build.sh`（如果 prebuilt 里有），
+  独立编内核 —— 快，但 GKI 12 已经弃用 build.sh，可能不适用
+
+无论哪条，都先要确认 build/kernel 这个 repo 项目是否在 LOS24 manifest 里、能否同步下来。
