@@ -1,0 +1,69 @@
+lineage-os-pandora — device tree for Xiaomi 17 Pro (pandora / canoe / SM8850)
+Copyright (C) 2026 lineage-os-pandora contributors
+
+This product includes software derived from the projects listed below.
+
+
+1. android_device_xiaomi_sm8850-common (common device configuration)
+   ------------------------------------------------------------------
+   Upstream : https://github.com/lolipuru/android_device_xiaomi_sm8850-common
+   Branch   : lineage-24.0
+   Upstream HEAD at the time provenance was captured:
+              6b1fa621c5daabf5be3ac02c25576462b1ba8f43  (2026-10-31, 168 commits)
+   Our snapshot:
+              local copy taken 2026-10-30 23:36 — it may be one commit behind
+              the upstream HEAD recorded above. The exact upstream commit this
+              snapshot corresponds to was not re-verified at publish time.
+
+   License  : Apache License, Version 2.0.
+              Each source file carries its own header:
+                SPDX-License-Identifier: Apache-2.0
+                Copyright (C) 2026 The LineageOS Project
+              Those headers are the upstream author's own and are kept verbatim.
+
+   Repository-level license file:
+              The upstream repository does not ship a repository-level LICENSE
+              file. A full copy of the Apache License 2.0 is added here as
+              LICENSE to satisfy section 4(a) of the license. No upstream file
+              header was modified in the process.
+
+   Devices supported upstream at the captured HEAD:
+              Xiaomi 17 (pudding)
+              Xiaomi 17 Pro Max (popsicle)
+              Redmi K90 Pro Max / Poco F8 Ultra (myron)
+              Redmi K100 Pro (athens)
+              Redmi K100 Pro Max (songyuan)
+
+   Xiaomi 17 Pro (pandora) is NOT among the devices supported upstream. The
+   pandora port in this repository is a downstream addition.
+
+
+2. LineageOS
+   ----------
+   https://github.com/LineageOS
+   Apache License, Version 2.0. The build recipes in this tree depend on
+   android_vendor_lineage, android_build and related projects at runtime of the
+   build; they are not vendored here.
+
+
+Modification notice (Apache License 2.0, section 4(b))
+------------------------------------------------------
+Files in this repository have been modified for the Xiaomi 17 Pro (pandora).
+Modifications include, but are not limited to:
+
+  - lineage_pandora.mk  — device identifier, model, fingerprint, GMS client id
+  - BoardConfig.mk      — screen density, odm.prop, prebuilt kernel/dtbo wiring
+  - device.mk           — product package list, overlays, UWB permission
+  - configs/properties/odm.prop — device properties captured from stock
+  - overlays/           — Aperture, FrameworkRes, Settings, SystemUI, UWB overlays
+                          for a 1220x2656 / 520 dpi panel
+
+Files derived from the upstream project keep their original copyright headers
+unchanged.
+
+
+Trademarks
+----------
+No trademark rights are granted by this license. "Xiaomi" and product names are
+trademarks of Xiaomi Inc. This project is not affiliated with, endorsed by or
+sponsored by Xiaomi Inc., nor by the LineageOS Project.

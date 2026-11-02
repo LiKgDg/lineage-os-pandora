@@ -1,0 +1,14 @@
+[
+  {
+    "remote": "github",
+    "repository": "LiKgDg/android_device_xiaomi_sm8850-common",
+    "target_path": "device/xiaomi/sm8850-common",
+    "branch": "lineage-24.0"
+  },
+  {
+    "remote": "github",
+    "repository": "LiKgDg/android_device_xiaomi_pandora-kernel",
+    "target_path": "device/xiaomi/pandora-kernel",
+    "branch": "lineage-24.0"
+  }
+]
