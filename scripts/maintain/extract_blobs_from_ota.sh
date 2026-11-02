@@ -194,8 +194,21 @@ COPIED=$(printf '%s\n' "$FILL_LIST" | while IFS= read -r e; do [ -n "$e" ] && [ 
 
 info "  已补齐：$COPIED 条"
 info
+# 补齐只是数据就位；不重生成 makefiles，新文件不会进 Android.mk / Android.bp。
+# 而重生成脚本一旦中途崩掉，Android.bp 会被写成半截（实测：723,764 → 89,523 字节），
+# 构建直接失败且没有备份可回滚。所以这里强制先备份再提示下一步。
+BK="/root/work/backup-mk-$(date +%H%M%S)"
+mkdir -p "$BK"
+cp -a "$VENDOR_DIR"/Android.bp "$VENDOR_DIR"/*.mk "$BK"/ 2>/dev/null && \
+    info "  已备份 Android.bp 与 *.mk → $BK（重生成前必须有这个）"
+info
 info "下一步（必须，否则新补的文件不会被安装进 system 镜像）："
-info "  cd $DEVICE_DIR && python3 setup-makefiles.py   # 或 vendor 侧的等价入口"
+info "  cd $DEVICE_DIR && ./setup-makefiles.py"
+info "  注意两点："
+info "    1) 要用 ./setup-makefiles.py 直接执行；它是 43 字节的 shebang 壳"
+info "       （#!./extract-files.py --regenerate_makefiles），python3 setup-makefiles.py 等于没跑"
+info "    2) 它同时重生成 Android.bp。若清单里有条目在磁盘上不存在，脚本会中途抛"
+info "       FileNotFoundError 并把 Android.bp 写成半截 —— 备份在 $BK"
 info "  然后重跑 make，确认 Android.mk / *-vendor.mk 里出现了新增文件"
 [ "$N_ABSENT" -gt 0 ] && info "  另有 $N_ABSENT 条原厂镜像也没有，保持缺失（清单来自别的机型/固件版本）"
 exit 0
