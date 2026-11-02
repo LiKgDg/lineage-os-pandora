@@ -1466,7 +1466,7 @@ androidboot.serialconsole=0        ← LOS 缺失
 必须有日志才能定位。取日志需要以下任一条件：
 
 1. **可用的 recovery 日志通道**——LOS recovery 起不来，TWRP 可以起但
-   `/sys/fs/pstore` 为空（内核未配置 ramoops）
+   `/sys/fs/pstore` 为空（ramoops 已注册、console 已启用，但未落盘，原因未定）
 2. **串口/UART**——需要拆机
 3. **A17 设备树**——换一个正确的起点，而不是继续修补 A16 派生的配置
 
@@ -1626,7 +1626,7 @@ bash scripts/maintain/regen_makefiles.sh --restore <备份目录>
 
 | 位置 | 结果 | 原因 |
 |---|---|---|
-| `/sys/fs/pstore` | 空 | cmdline 是 **`console=ttynull`**，控制台被关，ramoops 永远不写 |
+| `/sys/fs/pstore` | 空 | **原因未确定**（见下，最初判断是错的） |
 | `/proc/last_kmsg` | 不存在 | 现代内核已移除 |
 | `oops` 分区（16 MB） | 8 条记录，**全是 `BOOT MODE:recovery`，panic 全为 0** | 失败那次**没有崩溃**，没触发 mtdoops |
 
@@ -1642,15 +1642,50 @@ bash scripts/maintain/regen_makefiles.sh --restore <备份目录>
    → 所以 USB 不枚举，但这不是内核没跑
 3. panic 计数为 0 → `hung_task_panic=0`，挂死不留栈，这正是最难取证的一类故障
 
-### 下次必须有日志才能继续
+### 更正：`console=ttynull` 不是 pstore 空的原因
 
-现状下重刷一次仍然只会得到「卡第一屏 + 无日志」。要拿到证据，必须先改内核 cmdline：
+最初把 pstore 为空归因为「cmdline 里 `console=ttynull` 把控制台关了」。**这个判断是错的**，
+设备自己的 dmesg 直接推翻了它：
 
-- 在 `device-trees/los24-pandora/BoardConfig.mk` 的 `BOARD_KERNEL_CMDLINE` 里去掉 `console=ttynull`，
-  改为串口输出或显式开启 `ramoops` 的 console/pmsg 区域
-- 重编 boot 再刷，才有 `/sys/fs/pstore` 可读
+```
+[    0.081756] printk: legacy console [ramoops-1] enabled
+[    0.081851] pstore: Registered ramoops as persistent store backend
+[    0.081852] ramoops: using 0x200000@0xff400000, ecc: 0
+```
 
-在新证据出现之前，**不要再重复整包刷写**——同样的输入只会得到同样的结果，还会再清一次数据。
+ramoops console 是**启用**的，`console=ttynull` 只影响交互控制台，不影响 pstore 后端。
+`/sys/module/ramoops/parameters/` 实测：`console_size=1048576`、`pmsg_size=1048576`、
+`mem_address=0xff400000`、`mem_size=2097152`，参数都是正常的。
+
+真正可疑的是 **mtdoops 与 ramoops 注册在同一块 2 MB 区域**：
+
+```
+ramoops:  using 0x200000@0xff400000
+mtdoops:  cxt->monitor_data.mem_size=0x200000, mem_address=0xff400000
+mtdoops:  console-size=0x100000, pmsg-size=0x100000
+mtdoops:  <monitor fail>get_bm_devices-161: recovery mode and first
+```
+
+两个驱动抢同一块 reserved memory，先注册者占用。pstore 为空的确切原因**尚未确定**，
+可能是 mtdoops 抢占、也可能是 recovery 启动时清空——两条都没有证据，不做断言。
+
+### 拿到日志的可行路径：把「挂住」变成「崩溃」
+
+已确认的事实是：**mtdoops 这条通道是通的**——oops 分区里的 8 条记录就是它写的，
+每次 recovery 启动都会留一条。它只在 oops/panic 时触发，所以挂死（`hung_task_panic=0`）不留记录。
+
+因此最短路径不是去修 pstore，而是让挂死产生 panic：
+
+- 内核已支持 `sysctl.` 前缀的 cmdline（现有 cmdline 里就有 `sysctl.kernel.panic_on_rcu_stall=1`）
+- 追加 `sysctl.kernel.hung_task_panic=1` + `sysctl.kernel.hung_task_timeout_secs=30`，
+  卡住的进程会被判为 hung task 并触发 panic → mtdoops 落盘 → 下次进 recovery 用
+  `scripts/maintain/extract_crash_logs.sh` 就能读到栈
+
+注意：`console=ttynull`、`mtdoops.*` 这些 token **不在** `BoardConfig.mk` 的
+`BOARD_KERNEL_CMDLINE` 里（那里只有 video/lz4asm/fingerprint 五项），它们来自**预编译内核自带的
+bootconfig**。所以只能往 `BOARD_KERNEL_CMDLINE` **追加**，改不掉既有 token。
+
+这一步需要改配置 → 重编 boot → 重刷，是一个完整循环；在拿到新证据之前不要重复整包刷写。
 
 ### 工具
 

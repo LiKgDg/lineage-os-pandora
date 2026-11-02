@@ -70,6 +70,7 @@
 | `drop_paths.py` | 按相对路径清单（如 vendor/bin/wpa_cli）从 blob 包剔除文件。 |
 | `dump_device.sh` | dump_device.sh —— 从设备侧取 dump 的两种方式（B: adb pull / C: 分区 dd） |
 | `extract_blobs_from_ota.sh` | extract_blobs_from_ota.sh —— 从原厂 OTA 解出的分区镜像补齐 vendor blobs |
+| `extract_crash_logs.sh` | extract_crash_logs.sh —— 从设备分区里取崩溃/启动日志 |
 | `fetch_missing_projects.py` | 补齐 TWRP 源码树中缺失的项目。 |
 | `find_missing_projects.sh` | 列出 manifest 中声明但工作区不存在的项目路径。 |
 | `fix_blob_deps.py` | 移除 Xiaomi blob 包里 libwfdcommonutils 对 libdng_sdk 的虚假依赖。 |

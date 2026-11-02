@@ -177,6 +177,6 @@ fi
 hr
 info "完成。判读要点："
 info "  · panic 列为 0 但设备起不来 → 是挂住不是崩溃，用户态卡在某个 wait_for"
-info "  · 本机 cmdline 是 console=ttynull，pstore 永远为空，别在那儿找"
-info "  · 记录全是 BOOT MODE:recovery 说明失败那次没产生 oops（没崩）"
+info "  · pstore 为空不代表 console 被关（ramoops-1 实测是 enabled），原因未定，别急着下结论"
+info "  · 记录全是 BOOT MODE:recovery 说明失败那次没产生 oops（没崩，是挂住）"
 exit 0
