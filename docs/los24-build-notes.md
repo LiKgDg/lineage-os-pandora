@@ -1520,3 +1520,85 @@ pandora 重建，来源为 OS4.0.5.0 固件：
 
 本次构建解决了配置层面的 A17 对齐，但**不代表能启动**——前面已确认
 启动失败不是配置问题（十条假设全部排除）。设备当前为原厂 A17 可用状态。
+
+## 三十五、vendor 树的 Android.bp 是陈旧产物，重生成会毁树
+
+### 现象
+
+`vendor/xiaomi/sm8850-common` 的构建依赖一份 **747,836 字节的 `Android.bp`**，
+但用当前清单重生成不出来：
+
+| 项 | 值 |
+|---|---|
+| `proprietary-files.txt` 有效条目 | 1,758 |
+| `proprietary/` 实际文件 | 1,737 |
+| 清单里磁盘上没有的条目 | **211（12%）** |
+| 当前 `Android.bp` | 747,836 字节（2026-10-31 生成） |
+
+也就是说，这份 `Android.bp` 是**那 211 个文件还在的时候**生成的遗留产物，
+之后一直没重新生成过。构建能过，是因为 soong 读的是这份旧产物。
+
+### 直接跑 `setup-makefiles.py` 会发生什么
+
+`setup-makefiles.py` 只有 43 字节，内容是 `#!./extract-files.py --regenerate_makefiles`
+——是个 shebang 壳。**必须 `./setup-makefiles.py` 直接执行**；
+`python3 setup-makefiles.py` 等于什么也没做（返回 0、无输出）。
+
+而 `extract-files.py --regenerate_makefiles` 的行为是**边读清单边重写** `Android.bp`。
+一旦读到磁盘上不存在的 `.so`，抛 `FileNotFoundError` 退出，此时 `Android.bp`
+已被写成半截：
+
+```
+747,836 字节  →  89,523 字节  →  23,316 字节
+```
+
+构建随即挂在 soong bootstrap 阶段，且**没有任何备份可回滚**。
+
+### 为什么会缺 211 个文件（附带结论）
+
+不是提取遗漏。把这 211 条拿去原厂镜像里核对：
+
+| 分区 | 缺失 | 镜像里其实有 | 确实没有 |
+|---|---|---|---|
+| vendor | 118 | 117 | 1 |
+| odm | 89 | 87 | 2 |
+| system_ext | 2 | 2 | 0 |
+| system | 1 | 0 | 1 |
+| mi_ext | 1 | 0 | 1 |
+| 合计 | 211 | **206** | **5** |
+
+206 条能从镜像补齐——但**补齐会让构建挂掉**，而且是四层递进的坑：
+
+1. 补 206 条 → `undefined module`：`libVoiceSdk` / `libtensorflowlite_c_vendor` / `libbcs`
+2. 删掉这些 `.so` → 级联：`liblistensoundmodelaidl → liblistensoundmodel2vendor`
+3. 注释掉无文件条目让清单自洽 → 删掉了别人依赖的模块：`libdiag_system → vendor.qti.diaghal-V1-ndk`
+4. 继续修 → `missing variant`（模块变体属性不兼容）
+
+第 4 类是终点信号：**「镜像里有文件」≠「能作为 soong 模块编进去」**。
+`sm8850-common` 上游支持的 5 台机不含 pandora，这份清单本来就不是给本机抽的。
+
+### 现在怎么做
+
+用带闸的包装器，不要直接跑 `setup-makefiles.py`：
+
+```bash
+bash scripts/maintain/regen_makefiles.sh --check   # 只体检，有悬空则 exit 1
+bash scripts/maintain/regen_makefiles.sh           # 备份 → 重生成 → 后验
+bash scripts/maintain/regen_makefiles.sh --force   # 明知有悬空也跑（不推荐，但会备份）
+bash scripts/maintain/regen_makefiles.sh --restore <备份目录>
+```
+
+它做四件事：体检清单与磁盘 → 强制备份 `Android.bp` + `*.mk` + 清单 →
+执行重生成 → 体积骤降（<50%）即判定被截断，**自动从备份还原**。
+
+实测（2026-11-02）：`--check` 报 211 条悬空并 exit 1、不改动任何文件；
+`--force` 下重生成崩溃（747,836 → 23,316），脚本自动还原回 747,836，
+`Android.bp` sha256 与崩溃前一致。
+
+### 注意
+
+- 想彻底解决，得重新从 pandora 的完整 dump 生成属于本机的 `proprietary-files.txt`，
+  这不是「补几个文件」的量级。
+- 动 vendor 树之前**整树备份**（`rsync -a` 到 `/root/work/` 之类），
+  不要只挑几个文件备份——本次能救回来靠的是 `/root/backup-sm8850-a16/`
+  这份十月底的整树副本，不是脚本的功劳。
