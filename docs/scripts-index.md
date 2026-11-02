@@ -84,6 +84,7 @@
 | `install_ca.sh` | install_ca.sh —— 把 staging 里的自定义 CA 证书转换并安装进系统信任库 |
 | `kmi-gate.sh` | kmi-gate.sh —— 构建期 KMI 一致性门禁 |
 | `los_fill_missing.py` | 补齐 LineageOS 源码树中未检出的项目。 |
+| `patch_cmdline_diag.sh` | patch_cmdline_diag.sh —— 给内核 cmdline 追加「把挂死变成崩溃」的诊断参数 |
 | `patch_manifest_stub.py` | 让 build-manifest.xml 的生成在 .repo 不可用时降级，而不是硬失败。 |
 | `patch_ravenwood_guard.py` | 给 build/soong/java/ravenwood.go 的空依赖索引加保护。 |
 | `probe_adb_host.sh` | 探测 WSL 到 Windows adb server 的可用地址 |
