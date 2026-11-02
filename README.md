@@ -27,7 +27,7 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 
 | 问题 | 现状 | 下一步 |
 |---|---|---|
-| **LOS 24 完整 ROM 启动失败** | **根因已定案（离线 + 实机交叉验证）**：内核模块与内核 KMI 世代错配——`vendor_boot` 405/461、`vendor_dlkm` 366/402 是 6.12.23（android16-5）世代，内核是 6.12.69（android16-6）；`module_layout` CRC `0xe976b219` ≠ `0x797f2b3e`（后者已由 PixelOS 实机启动验证）。另有**清单与索引缺陷**：清单差集 66 条（实机折算 41 个真会漏加载），5 个索引文件也是 A16 生成的 | 按 `deliverables/gstack/_member/qa-fix-runbook.md` 的 **A2+ 整目录替换**执行（`vendor_ramdisk/lib/modules/`、`vendor_dlkm/lib/modules/`、`system_dlkm_flatten/` 三处整体替换，`system_dlkm/` 不动），然后重刷。验收判据：三处与 PixelOS 对应目录**逐字节相同**。⚠️ **LOS 的 OTA 包已从项目根目录删除**，重刷前需重新构建或找回 |
+| **LOS 24 完整 ROM 启动失败** | **根因已定案（离线 + 实机交叉验证）**：内核模块与内核 KMI 世代错配——`vendor_boot` 405/461、`vendor_dlkm` 366/402 是 6.12.23（android16-5）世代，内核是 6.12.69（android16-6）；`module_layout` CRC `0xe976b219` ≠ `0x797f2b3e`（后者已由 PixelOS 实机启动验证）。另有**清单与索引缺陷**：清单差集 66 条（实机折算 41 个真会漏加载），5 个索引文件也是 A16 生成的 | 按 `deliverables/gstack/_member/qa-fix-runbook.md` 的 **A2+ 整目录替换**执行（`vendor_ramdisk/lib/modules/`、`vendor_dlkm/lib/modules/`、`system_dlkm_flatten/` 三处整体替换，`system_dlkm/` 不动），然后重刷。验收判据：三处与 PixelOS 对应目录**逐字节相同**。✅ **已完成**：门禁 461/402/103 全 PASS（CRC 不符 0、悬空 0），同名索引 C4 对账通过；已出整包 `releases/Fastboot_lineage_pandora-20261102-1426.zip`，包内 A16 世代模块计数 **0**（此前坏包 53 / 366 / 102）。**待真机刷入验收**，方法见「快速开始 §7.1」 |
 | system-only 未启动 | `super.img` 刷入后设备回落 stock，未进系统 | 与上一行同源，先用同一门禁脚本排除模块问题，再抓 `logcat` / `pstore` |
 | fastbootd 热切 | `rc-mode fastboot` 落到 bootloader 而非 fastbootd | `sys.usb.ffs.ready` 时序问题，见文档 |
 | TWRP 数据解密 | `/data` 能挂载但 CE 区未解密，日志报 `Unknown password type` | Android 16 的 spblob 新格式（`.e0`/`.p1`/`.spblob`）TWRP 3.7.1 解析不了，属上游适配问题 |
@@ -157,10 +157,13 @@ bash scripts/maintain/verify_kernel_modules.sh
 
 # 镜像模式：直接查即将刷进去的那几个 .img，不需要 root、不需要挂载
 bash scripts/maintain/verify_kernel_modules.sh --images /path/to/images
+
+# 整目录替换的验收：五个索引必须与已知可启动的出货构建逐字节相同
+bash scripts/maintain/verify_kernel_modules.sh --ref /path/to/pixelos/vendor_dlkm/lib/modules
 ```
 
 退出码 0 才允许刷机。构建树模式扫四个目录——`vendor_ramdisk`、`vendor_dlkm`、
-`system_dlkm` 的**版本化目录**与 **flatten 副本**——做四查：
+`system_dlkm` 的**版本化目录**与 **flatten 副本**——做五查（C4 仅在给 `--ref` 时启用）：
 
 | 检查 | 内容 | 是否阻塞 |
 |---|---|---|
@@ -168,14 +171,32 @@ bash scripts/maintain/verify_kernel_modules.sh --images /path/to/images
 | C1b | 每个 `.ko` 的 vermagic 版本段与期望 KMI 一致 | ⚠️ 告警 |
 | C2 | `modules.load` 每条都能在目录内找到同名文件 | ✅ 硬门禁 |
 | C3 | `modules.load` 无重复条目 | ⚠️ 告警 |
+| C4 | `modules.*` 索引与参考构建（`--ref`）逐字节一致 | ✅ 硬门禁（启用即阻塞） |
 
 > C1b 只告警是有原因的：`CONFIG_MODVERSIONS=y` 时内核 `same_magic()` 只比较
 > vermagic 第一个空格**之后**的标志位，版本段被跳过——所以版本串不同不必然加载失败，
 > 真正决定成败的是 CRC。C3 同理：原厂 stock 自己就有 263 条重复且能正常开机。
 
+> C4 补的是另一个独立缺陷面：C1 只覆盖 `.ko`，**管不到 `modules.alias` / `.dep` /
+> `.softdep` / `.blocklist` 这几份由模块集生成的索引**。索引是 A16 生成的、模块是 A17，
+> C1/C2/C3 会全 PASS，但 autoload 与依赖解析整体走错——`.ko` 全换对了照样起不来。
+> 本机模块是固定预编译产物，所以判据只能是「与已知可启动的出货构建逐字节相同」，
+> 用 md5 判等，不做启发式推导。只比双方都存在的文件；单侧存在只告警。
+
 镜像模式查的是镜像内旧世代 vermagic 字符串的计数。判据是二值的：**已知正确的 stock
 镜像是 0，本次出问题的 LOS 镜像是 53 / 366 / 102**。它拦不住理论上「CRC 变了但
 vermagic 没变」的边角情况，但能拦住实际发生的这一类。
+
+三处成组验收（比 `.ko` 与索引的**全文件 md5**，不依赖 kmod，Windows 侧也能跑）：
+
+```bash
+bash scripts/maintain/verify_index_ref.sh \
+    --los /root/los24/out/target/product/pandora \
+    --ref /path/to/pixelos
+```
+
+判据：三处共 981 个文件全部「内容不同 0 / 仅一侧 0」。`modules.order` 与
+`modules.builtin*` 自动排除——它们本来就随构建路径变，做成门禁会误杀。
 
 **刷机脚本已经接上这道闸**：`flash_los_full.sh` 与 `flash_los_with_recovery.sh` 在刷之前
 自动跑 `--images`，不通过就退出（退出码 2）。要跳过必须显式写 `--no-check` /
@@ -189,7 +210,37 @@ bash scripts/maintain/clean_stale_modules.sh --dry-run   # 先看要删什么
 bash scripts/maintain/clean_stale_modules.sh             # 再删
 ```
 
-### 7. 刷入 LOS（fastbootd，13 分区）
+### 7. 刷入 LOS
+
+#### 7.1 整包（首次启动验收必须走这条）
+
+```bash
+# 只过闸不刷：包结构 + fastboot 版本 + 镜像内模块世代 + 设备状态
+bash scripts/flash/flash_fastboot_package.sh --preflight
+
+# 真刷（会问一次，输入 YES）
+bash scripts/flash/flash_fastboot_package.sh
+```
+
+整包路径与逐分区路径的本质差别是 `fastboot -w update` 会读包内的 `fastboot-info.txt`：
+它自己 `reboot fastboot`、`update-super`、按声明顺序刷逻辑分区，并执行
+`if-wipe erase userdata` / `erase metadata`。**逐分区脚本没有这些**，所以首次启动验收
+必须用整包——否则 wipe 没发生，卡住的现场就是「孤儿密文」而不是任何真实缺陷。
+
+脚本把三个只能靠工具拦的陷阱做成硬闸：
+
+| 闸 | 拦什么 | 不过的后果 |
+|---|---|---|
+| G1 | 包内缺 `fastboot-info.txt` / `update-super` / `if-wipe erase userdata` | `-w` 只擦 metadata，`/data` 变孤儿密文 |
+| G2 | fastboot 主版本 < 34 | 静默忽略 `fastboot-info.txt`：super 不更新、data 不擦、vbmeta 不施加，**屏幕与退出码都显示成功** |
+| G3 | 镜像内仍有 `6.12.23-android16-5` 世代模块 | 刷了必然卡第一屏 |
+
+刷完还会做一次事后校验（`--check-log` 可对历史日志单独复跑）：日志里必须有
+`Erasing 'userdata'`、必须有 super 的写入痕迹、且 `Sending '<分区>'` 的集合不能出现
+`abl` / `xbl` / `tz` / `uefi` 等固件分区——老版 fastboot 走 legacy 路径时会遍历 zip 里
+所有 `*.img`，拿同一套命令刷第三方整包就会写 bootloader。
+
+#### 7.2 逐分区（更新 / 局部重刷用）
 
 ```bash
 bash scripts/flash/flash_los_full.sh --img /path/to/images
@@ -198,6 +249,10 @@ bash scripts/flash/flash_los_full.sh --img /path/to/images
 会先跑 KMI 检查、再确认设备已在 fastbootd、然后逐个分区刷入，全程 tee 到
 `docs/logs/<UTC>-flash-los-full.log`。退出码 0 才是真成功——**别只看屏幕上的
 「中断于第 N 个」**，那行文字以前是唯一的信号，而脚本的 `$?` 一直是 0。
+
+> 这个脚本**不 wipe、不走 `update-super`、不刷 `pvmfw` 与 `recovery`**，
+> 且默认镜像目录是 `D:/WSL/out/pandora/modfix`（可能落后于最新构建）。
+> 拿它做首次启动验收会同时丢掉「模块正确」和「真 wipe」两个前提。
 
 ---
 
@@ -297,4 +352,9 @@ D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 `device-trees/` 下的内容来自 LineageOS 与 TWRP-Test 上游项目，沿用其原始许可证（Apache-2.0 等），
 版权归各自作者所有。
 
-本仓库不包含任何小米专有二进制文件、OTA 包或系统镜像；相关产物以 GitHub Release 形式分发。
+本仓库不包含 OTA 包与系统镜像——体积过大，且属小米分发物，相关产物以 GitHub Release 形式分发。
+
+唯一例外是 `device-trees/pandora-dt/original/` 下从原厂固件提取的设备树二进制：
+2 个 `.dtbo` 与 12 棵基础 `.dtb`，共约 7.7 MB。入库理由是它们是 `make merge` / `make verify`
+的**校验基准**——不入库则新克隆无法复跑校验，只能要求每个使用者重新解开 9 GB 的 OTA 包。
+清空该目录后 `make extract` 会从原包重新补齐。

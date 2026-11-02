@@ -14,7 +14,15 @@
 #   C1b  vermagic：每个 .ko 的 vermagic 版本段应与期望 KMI 一致        ← 仅告警
 #   C2   存在性：modules.load 的每条都必须在本目录内找到同名文件        ← 硬门禁
 #   C3   唯一性：modules.load 不得有重复条目                            ← 仅告警
+#   C4   索引世代：modules.* 索引必须与参考构建逐字节一致（--ref）      ← 启用即硬门禁
 #   任一硬门禁不过即 exit 1。
+#
+# 为什么需要 C4
+#   C1 只管 .ko，管不到 modules.alias / modules.dep / modules.softdep / modules.blocklist
+#   这几份**由模块集生成的索引**。A16 生成的索引配 A17 模块，autoload 与依赖解析会
+#   整体走错：.ko 全换对了照样起不来，而 C1/C2/C3 全 PASS —— 这正是本项目的第二个
+#   独立缺陷源（见 README 关键结论第 10 条）。本机模块是固定预编译产物，正确做法是
+#   与已知可启动的出货构建（PixelOS）逐字节对账，故 C4 用 md5 判等，不用启发式推导。
 #
 # 依赖：kmod（modprobe --dump-modversions / modinfo）、coreutils。Linux/WSL 下运行。
 #
@@ -31,6 +39,7 @@ DEFAULT_KMI="6.12.69-android16-6"        # vermagic 前两段
 EXPECT_CRC="$DEFAULT_CRC"
 EXPECT_KMI="$DEFAULT_KMI"
 LOAD_OVERRIDE=""
+REF_DIR=""                               # --ref 时才做 C4
 DO_LOAD=1
 STRICT_DUP=0
 STRICT_VMAGIC=0
@@ -65,6 +74,10 @@ kmi-gate.sh —— 构建期 KMI 一致性门禁
   -K, --kernel FILE      额外校验：FILE 里必须出现 "Linux version <EXPECT_KMI>"。
                          抓「换了内核但没换模块」这一类半迁移。
   -l, --load FILE        显式指定 modules.load（仅当只给一个目录时有效）
+  --ref DIR              参考模块目录，启用 C4：本目录的 modules.* 索引必须与 DIR 内
+                         同名文件逐字节一致（md5）。用于「整目录替换」的验收，
+                         只允许配一个模块目录。双方都有的文件才严格判等，
+                         单侧存在的只告警。
   -n, --no-load          跳过 C2/C3，只做 C1/C1b 全量扫描
   -R, --recursive        递归扫描子目录里的 .ko。system_dlkm 的版本化目录是
                          lib/modules/<ver>/kernel/**/*.ko 的嵌套结构，不递归会扫到 0 个。
@@ -109,6 +122,9 @@ kmi-gate.sh —— 构建期 KMI 一致性门禁
   # 只查 CRC（目录里没有 modules.load）
   kmi-gate.sh -n /root/work/gstack/qa/sets/stock-sd-flat
 
+  # 整目录替换的验收：索引必须与已知可启动的出货构建逐字节相同
+  kmi-gate.sh --ref /root/work/gstack/qa/sets/pixelos-vd /root/work/gstack/qa/sets/los-vd
+
   # 自己生成的清单要求零重复
   kmi-gate.sh --strict-dup $(KERNEL_PATH)/vendor_ramdisk
 EOF
@@ -121,6 +137,7 @@ while [ $# -gt 0 ]; do
     -k|--kmi)        EXPECT_KMI="${2:-}"; shift 2 ;;
     -K|--kernel)     KERNEL_IMG="${2:-}"; shift 2 ;;
     -l|--load)       LOAD_OVERRIDE="${2:-}"; shift 2 ;;
+    --ref)           REF_DIR="${2:-}"; shift 2 ;;
     -n|--no-load)    DO_LOAD=0; shift ;;
     -R|--recursive)  SCAN_DEPTH=""; shift ;;
     -s|--strict-dup) STRICT_DUP=1; shift ;;
@@ -139,10 +156,20 @@ DUP_LIMIT="${DUP_LIMIT:-0}"
 [ ${#DIRS[@]} -eq 0 ] && { echo "$PROG: 至少要给一个模块目录。用 --help 看用法。" >&2; exit 2; }
 command -v modprobe >/dev/null 2>&1 || { echo "$PROG: 找不到 modprobe（需 kmod）。" >&2; exit 2; }
 [ -n "$LOAD_OVERRIDE" ] && [ ${#DIRS[@]} -ne 1 ] && { echo "$PROG: --load 只能配一个目录。" >&2; exit 2; }
+# C4 是「一对一」对账：参考目录与被测目录必须指同一种集合（都 vendor_dlkm 或都 flatten），
+# 多目录时无法判断谁对谁，与其猜不如拒绝。
+[ -n "$REF_DIR" ] && [ ${#DIRS[@]} -ne 1 ] && { echo "$PROG: --ref 只能配一个模块目录。" >&2; exit 2; }
+[ -n "$REF_DIR" ] && [ ! -d "$REF_DIR" ] && { echo "$PROG: 参考目录不存在: $REF_DIR" >&2; exit 2; }
 
 # CRC 统一成小写 0x 前缀，避免 0x797F2B3E / 797f2b3e 之类写法差异造成假失败
 norm_crc() { local c; c=$(printf '%s' "$1" | tr 'A-F' 'a-f'); case "$c" in 0x*) echo "$c";; "") echo "";; *) echo "0x$c";; esac; }
 EXPECT_CRC=$(norm_crc "$EXPECT_CRC")
+
+# Git Bash 有 md5sum，macOS 只有 md5 —— 两种环境都要能跑
+md5_of() {
+  if command -v md5sum >/dev/null 2>&1; then md5sum "$1" 2>/dev/null | awk '{print $1}'
+  else md5 -q "$1" 2>/dev/null; fi
+}
 
 TMP=$(mktemp -d) || exit 2
 trap 'rm -rf "$TMP"' EXIT
@@ -191,7 +218,7 @@ scan_mods() {
 
 # ---------- 单个集合 ----------
 FAILED_SETS=0
-FAILED_C1=0; FAILED_C2=0; FAILED_C3=0; FAILED_C1B=0
+FAILED_C1=0; FAILED_C2=0; FAILED_C3=0; FAILED_C1B=0; FAILED_C4=0
 ROWS=()
 
 check_set() {
@@ -199,7 +226,8 @@ check_set() {
   local name="${LABELS[$idx]}"
   local crcfile="$TMP/crc.$idx"
   local n_ko=0 n_ok=0 n_bad=0 n_none=0 n_vm_ok=0 n_vm_bad=0
-  local n_entries=0 n_uniq=0 n_dup=0 n_missing=0 loadpath="" c1_fail=0 c1b_fail=0 c3_fail=0
+  local n_entries=0 n_uniq=0 n_dup=0 n_missing=0 loadpath="" c1_fail=0 c1b_fail=0 c3_fail=0 c4_fail=0
+  local c4_same=0 c4_diff=0 c4_only=0
 
   hr
   if [ ! -d "$dir" ]; then
@@ -312,13 +340,53 @@ check_set() {
     fi
   fi
 
+  # --- C4：索引世代（--ref 时启用） ---
+  # 只比「双方都有的 modules.*」。单侧存在的一律只告警：modules.order / modules.builtin
+  # 这类文件本来就随构建路径变，做成硬门禁会误杀。
+  if [ -n "$REF_DIR" ]; then
+    local b sum_a sum_b total4=0 diffout=""
+    for b in $( { find "$dir"     -maxdepth 1 \( -name 'modules.*' -o -name '*.modules.blocklist' \) -type f -printf '%f\n' 2>/dev/null
+                  find "$REF_DIR" -maxdepth 1 \( -name 'modules.*' -o -name '*.modules.blocklist' \) -type f -printf '%f\n' 2>/dev/null; } \
+                | sort -u ); do
+      if [ ! -f "$dir/$b" ] || [ ! -f "$REF_DIR/$b" ]; then
+        c4_only=$((c4_only + 1))
+        diffout="$diffout"$'\n'"         仅一侧存在: $b"
+        continue
+      fi
+      total4=$((total4 + 1))
+      sum_a=$(md5_of "$dir/$b")
+      sum_b=$(md5_of "$REF_DIR/$b")
+      if [ "$sum_a" = "$sum_b" ]; then
+        c4_same=$((c4_same + 1))
+      else
+        c4_diff=$((c4_diff + 1))
+        diffout="$diffout"$'\n'"         不同: $b  ${sum_a:0:8} ≠ ${sum_b:0:8}"
+      fi
+    done
+
+    # 一个共同文件都没有 = 目录给错了或索引没生成。空比较过门禁没有意义，判 FAIL。
+    if [ "$total4" -eq 0 ]; then
+      echo "  [C4]  索引世代一致    : 0 个 modules.* —— 无可比对文件，判 FAIL（--ref）"
+      c4_fail=1
+    elif [ "$c4_diff" -eq 0 ]; then
+      echo "  [C4]  索引世代一致    : $c4_same / $total4 与参考逐字节相同   PASS"
+      [ "$c4_only" -gt 0 ] && echo "        ⚠ $c4_only 个索引仅一侧存在（不阻塞）"
+    else
+      echo "  [C4]  索引世代一致    : $c4_same / $total4   FAIL —— $c4_diff 个与参考不同"
+      c4_fail=1
+    fi
+    [ "$QUIET" -eq 0 ] && [ -n "$diffout" ] && printf '%s\n' "$diffout"
+    [ -n "$REF_DIR" ] && echo "        参考: $REF_DIR"
+  fi
+
   local verdict="PASS"
-  if [ "$c1_fail" -eq 1 ] || [ "$n_missing" -gt 0 ] || [ "$c3_fail" -eq 1 ] || [ "$c1b_fail" -eq 1 ]; then
+  if [ "$c1_fail" -eq 1 ] || [ "$n_missing" -gt 0 ] || [ "$c3_fail" -eq 1 ] || [ "$c1b_fail" -eq 1 ] || [ "$c4_fail" -eq 1 ]; then
     verdict="FAIL"; FAILED_SETS=$((FAILED_SETS + 1))
   fi
   [ "$c1_fail" -eq 1 ] && FAILED_C1=$((FAILED_C1 + 1))
   [ "$c1b_fail" -eq 1 ] && FAILED_C1B=$((FAILED_C1B + 1))
   [ "$c3_fail" -eq 1 ] && FAILED_C3=$((FAILED_C3 + 1))
+  [ "$c4_fail" -eq 1 ] && FAILED_C4=$((FAILED_C4 + 1))
   echo "  => $verdict"
   ROWS+=("$name|$verdict|$n_ko|$n_bad|$n_vm_bad|$n_missing|$n_dup|$( [ -n "$loadpath" ] && [ -f "$loadpath" ] && echo 有 || echo 无)")
 }
@@ -345,7 +413,8 @@ fi
 hr
 echo "KMI 门禁   期望 module_layout CRC = $EXPECT_CRC   期望 KMI = $EXPECT_KMI"
 [ -n "$KERNEL_IMG" ] && echo "           内核 banner 校验 = $KERNEL_VERDICT"
-echo "           硬门禁 C1/C2$( [ "$STRICT_DUP" -eq 1 ] && echo "/C3")$( [ "$STRICT_VMAGIC" -eq 1 ] && echo "/C1b")；其余为告警"
+[ -n "$REF_DIR" ]    && echo "           参考构建（C4）= $REF_DIR"
+echo "           硬门禁 C1/C2$( [ -n "$REF_DIR" ] && echo "/C4")$( [ "$STRICT_DUP" -eq 1 ] && echo "/C3")$( [ "$STRICT_VMAGIC" -eq 1 ] && echo "/C1b")；其余为告警"
 
 for i in "${!DIRS[@]}"; do
   check_set "${DIRS[$i]}" "$i" "${#DIRS[@]}"
@@ -375,6 +444,8 @@ else
   [ "$FAILED_C2" -gt 0 ] && echo "  · C2 $FAILED_C2 个集合存在悬空条目：modules.load 指向不存在的文件"
   [ "$FAILED_C3" -gt 0 ] && echo "  · C3 $FAILED_C3 个集合存在重复条目（--strict-dup）"
   [ "$FAILED_C1B" -gt 0 ] && echo "  · C1b $FAILED_C1B 个集合 vermagic 版本段不符（--strict-vermagic）"
+  [ "$FAILED_C4" -gt 0 ]  && echo "  · C4 $FAILED_C4 个集合的 modules.* 索引与参考构建不一致：索引是旧世代生成的"
+  [ "$FAILED_C4" -gt 0 ]  && echo "    修法：整目录替换（scripts/maintain/replace_kernel_modules.sh），不要手工改索引"
   case "$KERNEL_VERDICT" in FAIL*) echo "  · 内核 banner 与期望 KMI 不符：内核被换过，但模块没跟着换" ;; esac
 fi
 exit "$OVERALL"

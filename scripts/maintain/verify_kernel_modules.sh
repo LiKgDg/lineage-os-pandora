@@ -16,6 +16,11 @@
 #   ./verify_kernel_modules.sh --strict-dup    # 把重复条目也当失败
 #   ./verify_kernel_modules.sh --images DIR    # 镜像模式：直接查要刷的那几个 .img
 #
+# 「三处整目录替换」的验收请用 verify_index_ref.sh：本脚本固定传四个模块目录，
+# 而 C4 索引对账是一对一的，套不进来。验收脚本同时比 .ko 与索引的全文件 md5，
+# 且不依赖 kmod，Windows 侧也能跑：
+#   bash scripts/maintain/verify_index_ref.sh --los <out目录> --ref <PixelOS解包目录>
+#
 # 两种模式的区别
 #   构建树模式（--out）  判据是 module_layout 的 CRC，精确，但需要 out/ 目录
 #   镜像模式（--images）  判据是镜像内旧世代 vermagic 字符串计数，粗但够用，
