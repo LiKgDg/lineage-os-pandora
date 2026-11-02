@@ -346,6 +346,23 @@ D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 
 ---
 
+## 从设备/固件取内容的三种路径
+
+三条路径不是替代关系，各自覆盖不同的东西：
+
+| 路径 | 命令 | 拿到什么 | 前提 | 覆盖 |
+|---|---|---|---|---|
+| **A 全量 OTA** | `python3 tools/payload_dump.py <zip> stock/ --verify` | 57 个分区镜像，离线可复跑 | 有官方 OTA 包 | `vendor` `odm` `system` `system_ext` `product` `*_dlkm` `boot` `vendor_boot` `dtbo` `vbmeta` `mi_ext` 等 |
+| **B adb pull** | `bash scripts/maintain/dump_device.sh --mode pull` | 运行态文件树 `/vendor` `/odm` `/system_ext` `/product` `/system` | shell 权限即可 | 运行态内容、当前挂载状态；root-only 文件会被跳过并列出 |
+| **C 分区 dd** | `bash scripts/maintain/dump_device.sh --mode dd --parts persist,devinfo` | 分区级镜像 | **必须 root**（`adb root` 或 `su`） | `persist` `devinfo` `frp` `modemst*` 这类 **OTA 里没有**的分区 |
+
+`bash scripts/maintain/dump_device.sh --list` 会列出设备全部 166 个分区，标注每个该走哪条路径。
+
+实测前提（pandora）：`/dev/block/by-name` 可以列，但**块设备读取 `Permission denied`**，所以 C 必须 root；B 在 shell 下可拉，`/vendor/etc` 750 个文件实测全部到手。
+
+补 blobs 不需要 C：`bash scripts/maintain/extract_blobs_from_ota.sh` 走 A 路径，
+实测 211 条缺失里有 206 条就在本地镜像内。
+
 ## 已发布的设备树仓库
 
 设备树已拆成三个独立仓库发布，`lineage.dependencies` 互相引用，可直接被 `roomservice` / `repo` 取用：
