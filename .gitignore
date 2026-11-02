@@ -45,6 +45,12 @@ vendor/*/*/proprietary/
 # 两棵树的深度不同（los-pandora 是 2 层，twrp-pandora 是 4 层），用 ** 一并覆盖
 !device-trees/**/recovery/root/vendor/lib/modules/**/*.ko
 *.dtb
+# 例外：pandora-dt 的原厂基础树是 make merge / make verify 的校验基准，
+# 只解一遍、体积 6.5 MB，入库比要求开发者重跑 9 GB OTA 更合理
+!device-trees/pandora-dt/original/base-parts/*.dtb
+# pandora-dt 的 build/ 全是 make 可再生产物（含 dtbo 与 dtc 警告日志），
+# 不入库：历史上入库过一份由错误 dts 编出的 board-pandora.dtbo，属于坏基线
+device-trees/pandora-dt/build/
 *.a
 *.o
 *.so

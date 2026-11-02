@@ -1,0 +1,31 @@
+source	part	index	offset	size	id	rev	custom0	custom1	custom2	custom3	model	compatible	sha256
+stock-a17	vendor_boot	0	0	581542	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe Alt. Thermal Profile v2 SoC	qcom,canoe	651cb70302936012249745a5614c9ee294fa23909f7506769aa4fafbb0682cef
+stock-a17	vendor_boot	1	581542	576027	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe Alt. Thermal Profile SoC	qcom,canoe	dd63bff7e56fbac830edbd800be635860c7ab3118560141dd8dd663fd1ebc9ef
+stock-a17	vendor_boot	2	1157569	581424	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe v2 SoC	qcom,canoe	df8191ecc51ebe4f57821807ef85556b278a21c791e917bf67a7720ed2a98ebd
+stock-a17	vendor_boot	3	1738993	576007	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe SoC	qcom,canoe	99987cbc4b934a6622fe471e9f85a9a5036c87aa1404cf5838abc1f2edcdf426
+stock-a17	vendor_boot	4	2315000	509818	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP SG v2 SoC	qcom,canoep	8b514ac7cbc311ac4308df0d2c117e716d12066cfce3125425e6fdf15b1f9370
+stock-a17	vendor_boot	5	2824818	501152	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP SG SoC	qcom,canoep	310288eefa023357b70aecca42a03ad96c492b46d27a0d7e1ba28f334606dbce
+stock-a17	vendor_boot	6	3325970	536022	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP Alt. Thermal Profile v2 SoC	qcom,canoep	e9bc3534d7cf744ae36a981d405d18ea082d2fa6abf1f0c81588d3c9e9508cc4
+stock-a17	vendor_boot	7	3861992	536275	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP Alt. Thermal Profile SoC	qcom,canoep	bbc2bff8c4ec51d0d0760794578e892a61268f11df4e1d3cd9346b757025f565
+stock-a17	vendor_boot	8	4398267	576448	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP v2 SoC	qcom,canoep	de64683922ec39b51976ef4fe760c0faa4e5d5126ddaee977d33fb2601ceadf6
+stock-a17	vendor_boot	9	4974715	571031	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP SoC	qcom,canoep	b37024716a254bb635c085075bfab8c4a0ccb626e0d7a311c1ef20d4831ba271
+stock-a17	vendor_boot	10	5545746	508061	-	-	-	-	-	-	Qualcomm Technologies, Inc. Whale SoC	qcom,whale	31a03cf85e2900310c5ed763ad9bf4b61df329f8de75a11f80d3307934ee0b37
+stock-a17	vendor_boot	11	6053807	503332	-	-	-	-	-	-	Qualcomm Technologies, Inc. WhaleP SoC	qcom,whalep	50206bbc22be677196f8de3a248e7d96db0f90b8bf1721bacc80cdc0f3f06908
+stock-a17	dtbo	0	96	141842	0	0	0	0	0	0	Qualcomm Technologies, Inc. Pandora based on SM8850	qcom,canoe-mtp qcom,canoe qcom,canoep-mtp qcom,canoep qcom,mtp	fe9c482a96ca65c7d55dd00ec99855dbf339c08da0360f2661a920c579cee7c8
+stock-a17	dtbo	1	141938	1134915	0	0	0	0	0	0	Qualcomm Technologies, Inc. Pandora based on SM8850	qcom,canoe-mtp qcom,canoe qcom,canoep-mtp qcom,canoep qcom,mtp	6aaa3d842e32d23616e6bed4c5c3cf4edc5b1c539d0bb160607dba4ea9b8f549
+pixelos	vendor_boot	0	0	581542	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe Alt. Thermal Profile v2 SoC	qcom,canoe	651cb70302936012249745a5614c9ee294fa23909f7506769aa4fafbb0682cef
+pixelos	vendor_boot	1	581542	576027	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe Alt. Thermal Profile SoC	qcom,canoe	dd63bff7e56fbac830edbd800be635860c7ab3118560141dd8dd663fd1ebc9ef
+pixelos	vendor_boot	2	1157569	581424	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe v2 SoC	qcom,canoe	df8191ecc51ebe4f57821807ef85556b278a21c791e917bf67a7720ed2a98ebd
+pixelos	vendor_boot	3	1738993	576007	-	-	-	-	-	-	Qualcomm Technologies, Inc. Canoe SoC	qcom,canoe	99987cbc4b934a6622fe471e9f85a9a5036c87aa1404cf5838abc1f2edcdf426
+pixelos	vendor_boot	4	2315000	509818	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP SG v2 SoC	qcom,canoep	8b514ac7cbc311ac4308df0d2c117e716d12066cfce3125425e6fdf15b1f9370
+pixelos	vendor_boot	5	2824818	501152	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP SG SoC	qcom,canoep	310288eefa023357b70aecca42a03ad96c492b46d27a0d7e1ba28f334606dbce
+pixelos	vendor_boot	6	3325970	536022	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP Alt. Thermal Profile v2 SoC	qcom,canoep	e9bc3534d7cf744ae36a981d405d18ea082d2fa6abf1f0c81588d3c9e9508cc4
+pixelos	vendor_boot	7	3861992	536275	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP Alt. Thermal Profile SoC	qcom,canoep	bbc2bff8c4ec51d0d0760794578e892a61268f11df4e1d3cd9346b757025f565
+pixelos	vendor_boot	8	4398267	576448	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP v2 SoC	qcom,canoep	de64683922ec39b51976ef4fe760c0faa4e5d5126ddaee977d33fb2601ceadf6
+pixelos	vendor_boot	9	4974715	571031	-	-	-	-	-	-	Qualcomm Technologies, Inc. CanoeP SoC	qcom,canoep	b37024716a254bb635c085075bfab8c4a0ccb626e0d7a311c1ef20d4831ba271
+pixelos	vendor_boot	10	5545746	508061	-	-	-	-	-	-	Qualcomm Technologies, Inc. Whale SoC	qcom,whale	31a03cf85e2900310c5ed763ad9bf4b61df329f8de75a11f80d3307934ee0b37
+pixelos	vendor_boot	11	6053807	503332	-	-	-	-	-	-	Qualcomm Technologies, Inc. WhaleP SoC	qcom,whalep	50206bbc22be677196f8de3a248e7d96db0f90b8bf1721bacc80cdc0f3f06908
+pixelos	dtbo	0	96	141842	0	0	0	0	0	0	Qualcomm Technologies, Inc. Pandora based on SM8850	qcom,canoe-mtp qcom,canoe qcom,canoep-mtp qcom,canoep qcom,mtp	fe9c482a96ca65c7d55dd00ec99855dbf339c08da0360f2661a920c579cee7c8
+pixelos	dtbo	1	141938	1134915	0	0	0	0	0	0	Qualcomm Technologies, Inc. Pandora based on SM8850	qcom,canoe-mtp qcom,canoe qcom,canoep-mtp qcom,canoep qcom,mtp	6aaa3d842e32d23616e6bed4c5c3cf4edc5b1c539d0bb160607dba4ea9b8f549
+los	dtbo	0	96	141842	0	0	0	0	0	0	Qualcomm Technologies, Inc. Pandora based on SM8850	qcom,canoe-mtp qcom,canoe qcom,canoep-mtp qcom,canoep qcom,mtp	fe9c482a96ca65c7d55dd00ec99855dbf339c08da0360f2661a920c579cee7c8
+los	dtbo	1	141938	1134915	0	0	0	0	0	0	Qualcomm Technologies, Inc. Pandora based on SM8850	qcom,canoe-mtp qcom,canoe qcom,canoep-mtp qcom,canoep qcom,mtp	6aaa3d842e32d23616e6bed4c5c3cf4edc5b1c539d0bb160607dba4ea9b8f549

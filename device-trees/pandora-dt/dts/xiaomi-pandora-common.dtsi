@@ -7453,7 +7453,7 @@
 						qcom,set = <0x03>;
 						regulator-min-microvolt = <0x2de600>;
 						regulator-max-microvolt = "\0=\t";
-						qcom,init-voltage = "\02K";
+						qcom,init-voltage = [00 32 4b 00];
 						qcom,init-mode = <0x00>;
 						phandle = <0x437>;
 					};
@@ -7470,7 +7470,7 @@
 						regulator-name = "pmh0101_bob2";
 						qcom,set = <0x03>;
 						regulator-min-microvolt = <0x294280>;
-						regulator-max-microvolt = "\063";
+						regulator-max-microvolt = [00 36 33 00];
 						qcom,init-voltage = <0x298100>;
 						qcom,init-mode = <0x00>;
 						phandle = <0x438>;
