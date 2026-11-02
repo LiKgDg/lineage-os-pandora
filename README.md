@@ -46,6 +46,11 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 │   ├── recovery-mode-switch-patch.md   recovery 模式切换补丁说明
 │   ├── phase1-full-rom-report.md       完整 ROM 路线评估
 │   ├── phase1b-system-only-port.md     system-only 执行报告
+│   ├── los24-build-notes.md   LOS 24.0 完整 ROM 的 35 节踩坑记录（§35 陈旧 Android.bp）
+│   ├── publish-plan.md        设备树三仓的发布计划
+│   ├── d4-boot-verify-plan.md D4 刷入启动验证预案：判据、步骤、回滚、风险
+│   ├── scripts-index.md       75 个脚本的索引（selfcheck.sh --index 生成，勿手改）
+│   ├── device-partitions.csv  设备 166 个分区的实测尺寸
 │   ├── logs/                  刷机与 sideload 日志
 │   └── ref/                   参考设备的配置（oneplus sm8850）
 ├── scripts/
@@ -53,22 +58,38 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 │   ├── flash/                 镜像拼装与刷机
 │   ├── patch/                 recovery / USB 补丁
 │   ├── device/                设备树装配脚本与片段
+│   ├── dt/                    pandora-dt 的早期设备树提取脚本
 │   └── maintain/              磁盘、证书、环境维护、缺失项目补齐、内核模块门禁
 ├── device-trees/
-│   ├── los-pandora/           LineageOS 侧设备树与 blob 清单
-│   └── twrp-pandora/          TWRP 侧设备树（来自 TWRP-Test/sm8850）
+│   ├── los24-pandora/         LOS 24.0 机型树（D1–D3 实际使用的那一份）
+│   ├── los-pandora/           LOS 23.2 system-only 路线：机型树 + blob 清单
+│   ├── twrp-pandora/          recovery 设备树（社区 TWRP 树 + LOS 23.2 适配）
+│   └── pandora-dt/            从原厂固件反编译的设备树工程（make merge / make verify）
 ├── tools/                     OTA 解包与设备树生成工具
 │   ├── payload_dump.py        payload 解析，支持 --list / --verify
 │   ├── gen_blob_list.py       ELF 依赖递归生成 blob 清单
 │   ├── gen_vendor_bp.py       生成 soong 包（当前使用）
 │   └── gen_vendor_mk.py       生成 make 包（已废弃，见文件头说明）
-├── deliverables/gstack/       工程分析报告与取证工作区
-│   ├── offline-evidence-closure-los24-kmi-2026-11-01.md   启动失败根因定案（模块 KMI 错配）
-│   ├── pixelos-cross-reference-2026-11-02.md              PixelOS 交叉验证（缺陷范围圈定、方案翻转）
-│   ├── _member/               各角色原始产出（修复手册、实验矩阵、离线取证）
-│   └── _work/                 取证脚本与文本证据，见其中 README.md
-└── releases/                  镜像发布说明（实际镜像见 GitHub Release）
+├── deliverables/              工程分析报告与取证工作区
+│   ├── gstack/                KMI 定案与 PixelOS 交叉验证的取证工作区
+│   │   ├── offline-evidence-closure-los24-kmi-2026-11-01.md   启动失败根因定案（模块 KMI 错配）
+│   │   ├── pixelos-cross-reference-2026-11-02.md              PixelOS 交叉验证（缺陷范围圈定、方案翻转）
+│   │   ├── _member/           各角色原始产出（修复手册、实验矩阵、离线取证）
+│   │   └── _work/             取证脚本与文本证据，见其中 README.md
+│   └── engineering-assurance/ 设备树完整性审计、开机动画事故复盘、测试策略
+└── releases/                  镜像发布说明；本地整包 `*.zip` 被 .gitignore 排除，不入库
 ```
+
+`scripts/` 下现有 **75 个**脚本（`.sh` / `.py`），逐条说明见 [`docs/scripts-index.md`](docs/scripts-index.md)，
+该文件由 `bash scripts/maintain/selfcheck.sh --index` 生成，不要手改。
+2026-11 新增的四个与设备取数、blob 补齐、自检相关：
+
+| 脚本 | 作用 |
+|---|---|
+| `scripts/maintain/dump_device.sh` | 设备侧取数。`--mode pull` 走 adb pull 抓运行态文件树；`--mode dd` 走 `su` 抓 `persist` / `devinfo` 这类 OTA 里没有的分区；`--list` 列出设备 166 个分区并标注该走哪条路径 |
+| `scripts/maintain/extract_blobs_from_ota.sh` | 从原厂 OTA 解出的 EROFS 镜像里补齐 blob 清单缺件，用 `fsck.erofs` 用户态提取、不 mount。**默认只比对不改动**，`--apply` 才写入（写入前强制备份 makefiles 与 `Android.bp`） |
+| `scripts/maintain/selfcheck.sh` | 仓库自检：`bash -n` 全部 `.sh`、python 语法解析全部 `.py`、CRLF、`lineage.dependencies` JSON、发布用设备树是否有 LICENSE；`--index` 顺带重写脚本索引 |
+| `scripts/maintain/regen_makefiles.sh` | `setup-makefiles.py` 的带闸包装：先体检 → 强制备份 → 后验体积 → 失败自动还原（为什么必须加闸见 `docs/los24-build-notes.md` §35） |
 
 ---
 
@@ -157,13 +178,14 @@ bash scripts/maintain/verify_kernel_modules.sh
 
 # 镜像模式：直接查即将刷进去的那几个 .img，不需要 root、不需要挂载
 bash scripts/maintain/verify_kernel_modules.sh --images /path/to/images
-
-# 整目录替换的验收：五个索引必须与已知可启动的出货构建逐字节相同
-bash scripts/maintain/verify_kernel_modules.sh --ref /path/to/pixelos/vendor_dlkm/lib/modules
 ```
 
+整目录替换的验收（五个索引逐字节对账）**不在这个脚本里**：本脚本固定传四个模块目录，
+套不进 C4 的一对一对账，要用 `verify_index_ref.sh`，见下面「三处成组验收」。
+
 退出码 0 才允许刷机。构建树模式扫四个目录——`vendor_ramdisk`、`vendor_dlkm`、
-`system_dlkm` 的**版本化目录**与 **flatten 副本**——做五查（C4 仅在给 `--ref` 时启用）：
+`system_dlkm` 的**版本化目录**与 **flatten 副本**——做五查（C4 走 `verify_index_ref.sh`，
+本脚本不启用）：
 
 | 检查 | 内容 | 是否阻塞 |
 |---|---|---|
@@ -240,6 +262,10 @@ bash scripts/flash/flash_fastboot_package.sh
 `abl` / `xbl` / `tz` / `uefi` 等固件分区——老版 fastboot 走 legacy 路径时会遍历 zip 里
 所有 `*.img`，拿同一套命令刷第三方整包就会写 bootloader。
 
+除上面三道，脚本还有两道只读闸，`--preflight` 也会跑：G4 设备状态（必须在 bootloader 而非
+fastbootd、`product` 必须是 `pandora|canoe`、电量 ≥ 4200 mV）、G5 证据基线（刷前拉
+`/sys/fs/pstore` 并投放 wipe 金丝雀，用于事后证明 wipe 真的发生、panic 是新的）。
+
 #### 7.2 逐分区（更新 / 局部重刷用）
 
 ```bash
@@ -253,6 +279,9 @@ bash scripts/flash/flash_los_full.sh --img /path/to/images
 > 这个脚本**不 wipe、不走 `update-super`、不刷 `pvmfw` 与 `recovery`**，
 > 且默认镜像目录是 `D:/WSL/out/pandora/modfix`（可能落后于最新构建）。
 > 拿它做首次启动验收会同时丢掉「模块正确」和「真 wipe」两个前提。
+
+首次启动验收的判据、失败判定与回滚命令见 [`docs/d4-boot-verify-plan.md`](docs/d4-boot-verify-plan.md)，
+预案不重复造流程，只用 `flash_fastboot_package.sh` 与 `restore_stock_full.sh` 这两条既有路径。
 
 ---
 
