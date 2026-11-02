@@ -63,3 +63,48 @@
 - [ ] blobs 4.6 GB 需通过 GitHub Release 分发（Git 单文件 100 MB 限制）
 - [ ] `vendor/xiaomi/pandora` 的 Android.bp/mk 已在 WSL 树就位，需同步到仓库发布
 - [ ] 构建验证：`m nothing`（接入 vendor/pandora 后是否仍绿）
+
+## 补充：构建接入时排除了三类「非 blob」
+
+把 blobs 接入 soong/kati 构建时，三轮报错各暴露一类必须从清单排除的文件：
+
+| 轮 | kati 报错 | 根因 | 排除规则 |
+|---|---|---|---|
+| 1 | `path may not contain a glob: vendor/bin/[` | toybox 命令符号链接（`[` 等 195 个） | 指向 toybox_vendor/toolbox 的 symlink |
+| 2 | `VINTF metadata found in PRODUCT_COPY_FILES` | vintf manifest 不是 blob | 路径含 vintf |
+| 3 | `Prebuilt apk found: .../overlay/*.apk, use BUILD_PREBUILT` | RRO overlay 不是 blob | overlay 目录下的 .apk |
+
+三类共排除 197 + 34 + 13 = 244 条，最终清单 2105 条。
+
+> 其中 overlay 排除踩了个真 bug：`rel` 是相对分区路径，第一层目录前没有斜杠
+> （`overlay/xxx.apk` 而非 `/overlay/xxx.apk`），用 `"/overlay/" in rel` 永远匹配不上。
+> 改为 `split("/")` 判断路径段含 `overlay` 才修复。
+
+## 补充二：构建接入的完整排查链（六轮）
+
+把 pandora blobs 接入 soong/kati 构建，共排查六类问题，最终清单收敛到 2007 条：
+
+| 轮 | 阶段 | 报错/问题 | 修复 |
+|---|---|---|---|
+| 1 | kati | `path may not contain a glob: vendor/bin/[` | 排除 toybox 符号链接（195） |
+| 2 | kati | `VINTF metadata found in PRODUCT_COPY_FILES` | 排除 vintf（34） |
+| 3 | kati | `Prebuilt apk: odm/overlay/*.apk` | 排除 RRO overlay（13），踩 `/overlay/` 路径判断 bug |
+| 4 | kati | `Prebuilt apk: product/app/SoterService.apk` | apk 不能走 COPY_FILES，改 android_app_import |
+| 5 | soong | `module "CneApp" found in multiple namespaces` | 清单解析 bug：未剥离 `;REQUIRED=`/`|sha1` 后缀 |
+| 6 | （进行中） | — | — |
+
+### 两个关键 bug（值得记）
+
+1. **`/overlay/` 路径判断**：`rel` 是相对分区路径，第一层目录前无斜杠
+   （`overlay/xxx.apk`），用 `"/overlay/" in rel` 永远匹配不上 → 改 `split("/")` 判断路径段。
+
+2. **清单后缀未剥离**：sm8850-common 清单里条目带 `;REQUIRED=...`（依赖）和 `|sha1`
+   （pinned 校验）后缀，`covered` 集合按 `split(":")` 只剥了映射目标，没剥 `;`/`|` 后缀，
+   导致 98 个文件被误判为「未覆盖」重复纳入 pandora 增量，触发模块重名冲突。
+   改为 `split(":")[0].split(";")[0].split("|")[0]` 三段剥离。
+
+### 结论：blobs 的正确边界
+
+- 只有 `.so`、firmware、专有配置、**非 overlay 的专有 apk**（走 android_app_import）是 blob
+- toybox 命令、vintf、RRO overlay 都是「源码/device tree 可提供」的，不是 blob
+- 这些边界之前靠 extract-utils 框架自动处理，手写脚本时容易漏
