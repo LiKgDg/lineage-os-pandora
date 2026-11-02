@@ -27,7 +27,7 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 
 | 问题 | 现状 | 下一步 |
 |---|---|---|
-| **LOS 24 完整 ROM 启动失败** | **根因已定案（离线 + 实机交叉验证）**：内核模块与内核 KMI 世代错配——`vendor_boot` 405/461、`vendor_dlkm` 366/402 是 6.12.23（android16-5）世代，内核是 6.12.69（android16-6）；`module_layout` CRC `0xe976b219` ≠ `0x797f2b3e`（后者已由 PixelOS 实机启动验证）。另有**清单与索引缺陷**：清单差集 66 条（实机折算 41 个真会漏加载），5 个索引文件也是 A16 生成的 | 按 `deliverables/gstack/_member/qa-fix-runbook.md` 的 **A2+ 整目录替换**执行（`vendor_ramdisk/lib/modules/`、`vendor_dlkm/lib/modules/`、`system_dlkm_flatten/` 三处整体替换，`system_dlkm/` 不动），然后重刷。验收判据：三处与 PixelOS 对应目录**逐字节相同**。✅ **已完成**：门禁 461/402/103 全 PASS（CRC 不符 0、悬空 0），同名索引 C4 对账通过；已出整包 `releases/Fastboot_lineage_pandora-20261102-1426.zip`，包内 A16 世代模块计数 **0**（此前坏包 53 / 366 / 102）。**待真机刷入验收**，方法见「快速开始 §7.1」 |
+| **LOS 24 完整 ROM 启动失败** | **根因已定案（离线 + 实机交叉验证）**：内核模块与内核 KMI 世代错配——`vendor_boot` 405/461、`vendor_dlkm` 366/402 是 6.12.23（android16-5）世代，内核是 6.12.69（android16-6）；`module_layout` CRC `0xe976b219` ≠ `0x797f2b3e`（后者已由 PixelOS 实机启动验证）。另有**清单与索引缺陷**：清单差集 66 条（实机折算 41 个真会漏加载），5 个索引文件也是 A16 生成的 | 按 `deliverables/gstack/_member/qa-fix-runbook.md` 的 **A2+ 整目录替换**执行（`vendor_ramdisk/lib/modules/`、`vendor_dlkm/lib/modules/`、`system_dlkm_flatten/` 三处整体替换，`system_dlkm/` 不动），然后重刷。验收判据：三处与 PixelOS 对应目录**逐字节相同**。✅ **已完成**：门禁 461/402/103 全 PASS（CRC 不符 0、悬空 0），同名索引 C4 对账通过；已出整包 `releases/Fastboot_lineage_pandora-20261102-1426.zip`，包内 A16 世代模块计数 **0**（此前坏包 53 / 366 / 102）。**待真机刷入验收**，方法见「快速开始 §5.1」 |
 | system-only 未启动 | `super.img` 刷入后设备回落 stock，未进系统 | 与上一行同源，先用同一门禁脚本排除模块问题，再抓 `logcat` / `pstore` |
 | fastbootd 热切 | `rc-mode fastboot` 落到 bootloader 而非 fastbootd | `sys.usb.ffs.ready` 时序问题，见文档 |
 | TWRP 数据解密 | `/data` 能挂载但 CE 区未解密，日志报 `Unknown password type` | Android 16 的 spblob 新格式（`.e0`/`.p1`/`.spblob`）TWRP 3.7.1 解析不了，属上游适配问题 |
@@ -51,12 +51,12 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 │   ├── d4-boot-verify-plan.md D4 刷入启动验证预案：判据、步骤、回滚、风险
 │   ├── rebuild-from-scratch-plan.md  从零重建方案（方案 A：仓库化 + 自编内核）
 │   ├── kernel-build-feasibility.md   内核源码编译可行性结论（为什么走预编译、取证往哪走）
-│   ├── scripts-index.md       70 个脚本的索引（selfcheck.sh --index 生成，勿手改）
+│   ├── scripts-index.md       68 个脚本的索引（selfcheck.sh --index 生成，勿手改）
 │   ├── device-partitions.csv  设备 166 个分区的实测尺寸
 │   ├── logs/                  刷机与 sideload 日志
 │   └── ref/                   参考设备的配置（oneplus sm8850）
 ├── scripts/
-│   ├── build/                 编译与源码同步（含 build_twrp.sh）
+│   ├── build/                 编译与源码同步
 │   ├── flash/                 镜像拼装与刷机
 │   ├── patch/                 recovery / USB 补丁
 │   ├── device/                设备树装配脚本与片段
@@ -82,7 +82,7 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 └── releases/                  镜像发布说明；本地整包 `*.zip` 被 .gitignore 排除，不入库
 ```
 
-`scripts/` 下现有 **70 个**脚本（`.sh` / `.py`），逐条说明见 [`docs/scripts-index.md`](docs/scripts-index.md)，
+`scripts/` 下现有 **68 个**脚本（`.sh` / `.py`），逐条说明见 [`docs/scripts-index.md`](docs/scripts-index.md)，
 该文件由 `bash scripts/maintain/selfcheck.sh --index` 生成，不要手改。
 2026-11 新增的四个与设备取数、blob 补齐、自检相关：
 
@@ -146,33 +146,20 @@ python3 tools/gen_vendor_bp.py vendor/xiaomi/pandora
 
 产出 `proprietary-files.txt`、`proprietary/<part>/...`、`Android.bp`、`<device>-vendor.mk`。
 
-### 3. 编译 system-only 镜像
+### 3. 拼装 super 并刷机
 
 ```bash
-bash scripts/build/build_sysonly.sh
-```
-
-依赖：LineageOS 23.2 源码树、`JAVA_HOME` 指向预编译 JDK、干净 `PATH`。
-
-### 4. 拼装 super 并刷机
-
-```bash
-bash scripts/flash/make_super.sh          # 生成 sysonly/super.img
+bash scripts/flash/make_super.sh          # 生成 super.img
 bash scripts/flash/flash_super.sh         # 设备需在 bootloader fastboot
 ```
 
 镜像获取见 [`releases/README.md`](releases/README.md)。
 
-### 5. 编译并刷入 TWRP
+> 已废弃路线（源码树已删除，脚本已移除，仅留历史记录）：
+> system-only 移植见 [`docs/phase1b-system-only-port.md`](docs/phase1b-system-only-port.md)，
+> TWRP 编译见 [`docs/twrp-build-notes.md`](docs/twrp-build-notes.md)。
 
-```bash
-bash scripts/build/build_twrp.sh 10       # 前台编译，GUI 终端可见进度条
-```
-
-产物 `out/target/product/sm8850/recovery.img`，校验与踩坑见
-[`docs/twrp-build-notes.md`](docs/twrp-build-notes.md)。
-
-### 6. 出包前校验内核模块（必做）
+### 4. 出包前校验内核模块（必做）
 
 ```bash
 # 构建树模式：判据是 module_layout 的 CRC，最精确
@@ -234,9 +221,9 @@ bash scripts/maintain/clean_stale_modules.sh --dry-run   # 先看要删什么
 bash scripts/maintain/clean_stale_modules.sh             # 再删
 ```
 
-### 7. 刷入 LOS
+### 5. 刷入 LOS
 
-#### 7.1 整包（首次启动验收必须走这条）
+#### 5.1 整包（首次启动验收必须走这条）
 
 ```bash
 # 只过闸不刷：包结构 + fastboot 版本 + 镜像内模块世代 + 设备状态
@@ -268,7 +255,7 @@ bash scripts/flash/flash_fastboot_package.sh
 fastbootd、`product` 必须是 `pandora|canoe`、电量 ≥ 4200 mV）、G5 证据基线（刷前拉
 `/sys/fs/pstore` 并投放 wipe 金丝雀，用于事后证明 wipe 真的发生、panic 是新的）。
 
-#### 7.2 逐分区（更新 / 局部重刷用）
+#### 5.2 逐分区（更新 / 局部重刷用）
 
 ```bash
 bash scripts/flash/flash_los_full.sh --img /path/to/images

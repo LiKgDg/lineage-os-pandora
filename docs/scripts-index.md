@@ -9,8 +9,6 @@
 |---|---|
 | `build_los_gated.sh` | build_los_gated.sh —— 带 KMI 门禁的 LOS 构建入口 |
 | `build_recovery_fb.sh` | build_recovery_fb.sh —— 临时改写 BoardConfig.mk 的 recovery 开关，用于单独编 recovery |
-| `build_sysonly.sh` | build_sysonly.sh —— 只编 system 镜像的构建入口（lunch lineage_pandora_sysonly） |
-| `build_twrp.sh` | TWRP recovery 前台编译脚本 —— 在 GUI 终端里运行可看到 ninja 实时进度条 |
 | `los_sync.sh` | 初始化并同步 LineageOS 24.0 源码树，供 sm8850 完整 ROM 开发使用。 |
 | `make_fastboot_package.sh` | make_fastboot_package.sh —— 生成 `fastboot -w update` 可直接消费的整包 |
 | `make_pandora_kernel.sh` | 从 pandora 的 stock 分区镜像组装 device/xiaomi/pandora-kernel |
