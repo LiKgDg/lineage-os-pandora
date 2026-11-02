@@ -1,0 +1,221 @@
+日志: docs/logs/20261102T190220Z-flash-package.log
+整包: releases/Fastboot_lineage_pandora-20261102-1426.zip
+
+────────────────────────────────────────────────────────────────
+[G1] 包结构与 wipe 指令
+  [OK]   android-info.txt
+  [OK]   fastboot-info.txt
+  [OK]   if-wipe erase userdata
+  [OK]   if-wipe erase metadata
+  [OK]   update-super
+  白名单（取自包内 fastboot-info）: boot dtbo init_boot odm product pvmfw recovery system system_dlkm system_ext vbmeta vbmeta_system vendor vendor_boot vendor_dlkm super super_empty userdata metadata 
+────────────────────────────────────────────────────────────────
+[G2] fastboot 版本
+  fastboot version 37.0.1-15733141
+  [OK]   主版本 37 ≥ 34，支持 fastboot-info.txt
+────────────────────────────────────────────────────────────────
+[G3] 镜像内模块世代（期望 6.12.69-android16-6）
+  镜像                旧世代  新世代   判定
+  vendor_boot.img               0         75   OK
+  vendor_dlkm.img               0        402   OK
+  system_dlkm.img               0        207   OK
+────────────────────────────────────────────────────────────────
+[G4] 设备状态
+  [OK]   在 bootloader（is-userspace=no）
+  [OK]   product=pandora
+  [NOTE] 电量阈值被 FLASH_MIN_MV 覆盖为 4050 mV（默认 4200）
+  [OK]   电量 4086 mV
+────────────────────────────────────────────────────────────────
+[G5] 证据基线
+  adb 不可达 —— 跳过 pstore 基线与金丝雀
+  提示：这两项不是刷机前提，但缺了就无法证明 wipe 真的发生、也无法分辨 panic 新旧
+────────────────────────────────────────────────────────────────
+即将执行：./platform-tools/fastboot.exe -w update releases/Fastboot_lineage_pandora-20261102-1426.zip
+  这会真的擦掉 userdata 与 metadata，不可逆。
+────────────────────────────────────────────────────────────────
+[刷入] 2026-11-02T19:02:23Z
+--------------------------------------------
+Bootloader Version...: 
+Baseband Version.....: 
+Serial Number........: fd3af370
+--------------------------------------------
+extracting android-info.txt (0 MB) to RAM...
+Checking 'product'                                 OKAY [  0.004s]
+Setting current slot to 'a'                        OKAY [  0.007s]
+extracting fastboot-info.txt (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to disk... took 0.000s
+extracting system.img (899 MB) to disk... took 2.884s
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting super_empty.img (0 MB) to RAM...
+extracting boot.img (96 MB) to disk... took 0.191s
+archive does not contain 'boot.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'boot_a' (98304 KB)                        OKAY [  2.359s]
+Writing 'boot_a'                                   OKAY [  0.093s]
+extracting super_empty.img (0 MB) to RAM...
+extracting init_boot.img (8 MB) to disk... took 0.016s
+archive does not contain 'init_boot.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'init_boot' (8192 KB)                      OKAY [  0.196s]
+Writing 'init_boot'                                OKAY [  0.053s]
+extracting super_empty.img (0 MB) to RAM...
+extracting dtbo.img (22 MB) to disk... took 0.027s
+archive does not contain 'dtbo.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'dtbo' (32768 KB)                          OKAY [  0.787s]
+Writing 'dtbo'                                     OKAY [  0.062s]
+extracting super_empty.img (0 MB) to RAM...
+extracting recovery.img (100 MB) to disk... took 0.167s
+archive does not contain 'recovery.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'recovery' (102400 KB)                     OKAY [  2.449s]
+Writing 'recovery'                                 OKAY [  0.093s]
+extracting super_empty.img (0 MB) to RAM...
+extracting pvmfw.img (0 MB) to disk... took 0.003s
+archive does not contain 'pvmfw.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'pvmfw' (1024 KB)                          OKAY [  0.026s]
+Writing 'pvmfw'                                    OKAY [  0.050s]
+extracting super_empty.img (0 MB) to RAM...
+extracting vendor_boot.img (96 MB) to disk... took 0.160s
+archive does not contain 'vendor_boot.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'vendor_boot' (98304 KB)                   OKAY [  2.354s]
+Writing 'vendor_boot'                              OKAY [  0.092s]
+extracting super_empty.img (0 MB) to RAM...
+extracting vbmeta.img (0 MB) to disk... took 0.000s
+archive does not contain 'vbmeta.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'vbmeta' (64 KB)                           OKAY [  0.003s]
+Writing 'vbmeta'                                   OKAY [  0.049s]
+extracting super_empty.img (0 MB) to RAM...
+extracting vbmeta_system.img (0 MB) to disk... took 0.000s
+archive does not contain 'vbmeta_system.sig'
+extracting super_empty.img (0 MB) to RAM...
+Sending 'vbmeta_system' (64 KB)                    OKAY [  0.003s]
+Writing 'vbmeta_system'                            OKAY [  0.049s]
+Rebooting into fastboot                            OKAY [  0.002s]
+< waiting for any device >
+extracting super_empty.img (0 MB) to disk... took 0.000s
+Sending 'super' (5 KB)                             OKAY [  0.000s]
+Updating super partition                           OKAY [  0.009s]
+Resizing 'system_a'                                OKAY [  0.001s]
+Resizing 'system_dlkm_a'                           OKAY [  0.001s]
+Resizing 'system_ext_a'                            OKAY [  0.001s]
+Resizing 'product_a'                               OKAY [  0.001s]
+Resizing 'vendor_a'                                OKAY [  0.001s]
+Resizing 'vendor_dlkm_a'                           OKAY [  0.001s]
+Resizing 'odm_a'                                   OKAY [  0.001s]
+extracting super_empty.img (0 MB) to RAM...
+extracting system.img (899 MB) to disk... took 2.656s
+archive does not contain 'system.sig'
+Resizing 'system_a'                                OKAY [  0.001s]
+Sending sparse 'system_a' 1/4 (258984 KB)          OKAY [  6.319s]
+Writing 'system_a'                                 OKAY [  0.154s]
+Sending sparse 'system_a' 2/4 (258176 KB)          OKAY [  6.309s]
+Writing 'system_a'                                 OKAY [  0.127s]
+Sending sparse 'system_a' 3/4 (258176 KB)          OKAY [  6.300s]
+Writing 'system_a'                                 OKAY [  0.136s]
+Sending sparse 'system_a' 4/4 (145784 KB)          OKAY [  3.547s]
+Writing 'system_a'                                 OKAY [  0.097s]
+extracting super_empty.img (0 MB) to RAM...
+extracting system_dlkm.img (29 MB) to disk... took 0.049s
+archive does not contain 'system_dlkm.sig'
+Resizing 'system_dlkm_a'                           OKAY [  0.001s]
+Sending 'system_dlkm_a' (29704 KB)                 OKAY [  0.720s]
+Writing 'system_dlkm_a'                            OKAY [  0.049s]
+extracting super_empty.img (0 MB) to RAM...
+extracting system_ext.img (493 MB) to disk... took 1.453s
+archive does not contain 'system_ext.sig'
+Resizing 'system_ext_a'                            OKAY [  0.001s]
+Sending sparse 'system_ext_a' 1/2 (259384 KB)      OKAY [  6.357s]
+Writing 'system_ext_a'                             OKAY [  0.124s]
+Sending sparse 'system_ext_a' 2/2 (245716 KB)      OKAY [  6.053s]
+Writing 'system_ext_a'                             OKAY [  0.092s]
+extracting super_empty.img (0 MB) to RAM...
+extracting product.img (507 MB) to disk... took 2.066s
+archive does not contain 'product.sig'
+Resizing 'product_a'                               OKAY [  0.001s]
+Sending sparse 'product_a' 1/2 (258264 KB)         OKAY [  6.309s]
+Writing 'product_a'                                OKAY [  0.148s]
+Sending sparse 'product_a' 2/2 (261308 KB)         OKAY [  6.378s]
+Writing 'product_a'                                OKAY [  0.125s]
+extracting super_empty.img (0 MB) to RAM...
+extracting vendor.img (641 MB) to disk... took 1.579s
+archive does not contain 'vendor.sig'
+Resizing 'vendor_a'                                OKAY [  0.001s]
+Invalid sparse file format at header magic
+Sending sparse 'vendor_a' 1/3 (262076 KB)          OKAY [  6.397s]
+Writing 'vendor_a'                                 OKAY [  0.133s]
+Sending sparse 'vendor_a' 2/3 (261652 KB)          OKAY [  6.413s]
+Writing 'vendor_a'                                 OKAY [  0.136s]
+Sending sparse 'vendor_a' 3/3 (130244 KB)          OKAY [  3.189s]
+Writing 'vendor_a'                                 OKAY [  0.095s]
+extracting super_empty.img (0 MB) to RAM...
+extracting vendor_dlkm.img (132 MB) to disk... took 0.274s
+archive does not contain 'vendor_dlkm.sig'
+Resizing 'vendor_dlkm_a'                           OKAY [  0.001s]
+Sending 'vendor_dlkm_a' (135472 KB)                OKAY [  3.299s]
+Writing 'vendor_dlkm_a'                            OKAY [  0.101s]
+extracting super_empty.img (0 MB) to RAM...
+extracting odm.img (29 MB) to disk... took 0.088s
+archive does not contain 'odm.sig'
+Resizing 'odm_a'                                   OKAY [  0.001s]
+Sending 'odm_a' (30516 KB)                         OKAY [  0.743s]
+Writing 'odm_a'                                    OKAY [  0.046s]
+Erasing 'userdata'                                 OKAY [  0.187s]
+Erase successful, but not automatically formatting.
+File system type raw not supported.
+Erasing 'metadata'                                 OKAY [  0.002s]
+Erase successful, but not automatically formatting.
+File system type raw not supported.
+Erasing 'userdata'                                 OKAY [  0.152s]
+Erase successful, but not automatically formatting.
+File system type raw not supported.
+wipe task partition not found: cache
+Erasing 'metadata'                                 OKAY [  0.002s]
+Erase successful, but not automatically formatting.
+File system type raw not supported.
+Rebooting                                          OKAY [  0.000s]
+Finished. Total time: 102.670s
+[刷入] fastboot 退出码 0，耗时 102 秒
+────────────────────────────────────────────────────────────────
+事后校验：docs/logs/20261102T190220Z-flash-package.log
+  [OK]   Erasing 'userdata' 出现
+  [OK]   Erasing 'metadata' 出现
+  [OK]   super 已重写
+  [注意] 写了白名单外的分区 'boot_a'
+  [注意] 写了白名单外的分区 'odm_a'
+  [注意] 写了白名单外的分区 'product_a'
+  [注意] 写了白名单外的分区 'system_a'
+  [注意] 写了白名单外的分区 'system_dlkm_a'
+  [注意] 写了白名单外的分区 'system_ext_a'
+  [注意] 写了白名单外的分区 'vendor_a'
+  [注意] 写了白名单外的分区 'vendor_dlkm_a'
+  实际写入分区：16 个（白名单外 8 个）
+  [OK]   无 FAILED
+────────────────────────────────────────────────────────────────
+事后校验通过。下一步：等设备起系统，再验 wipe 金丝雀（见脚本末尾提示）。
+────────────────────────────────────────────────────────────────
+下一步（设备正在首次启动，预期 3–20 分钟，含 dexopt）：
+  1. 先确认动画是逐帧推进还是冻帧：间隔 10 秒连拍三张截图比 hash
+  2. adb 起来后验金丝雀：
+       ./platform-tools/adb.exe shell 'ls /data/local/tmp/WIPE_CANARY-* /sdcard/WIPE_CANARY-* 2>&1'
+     两个文件都不存在 = wipe 真的发生了
+  3. 失败取证用 scripts/maintain/ 下的门禁与 docs/ 里的判读表，不要叠加刷机

@@ -1,0 +1,35 @@
+日志: docs/logs/20261102T190103Z-flash-package.log
+整包: releases/Fastboot_lineage_pandora-20261102-1426.zip
+
+────────────────────────────────────────────────────────────────
+[G1] 包结构与 wipe 指令
+  [OK]   android-info.txt
+  [OK]   fastboot-info.txt
+  [OK]   if-wipe erase userdata
+  [OK]   if-wipe erase metadata
+  [OK]   update-super
+  白名单（取自包内 fastboot-info）: boot dtbo init_boot odm product pvmfw recovery system system_dlkm system_ext vbmeta vbmeta_system vendor vendor_boot vendor_dlkm super super_empty userdata metadata 
+────────────────────────────────────────────────────────────────
+[G2] fastboot 版本
+  fastboot version 37.0.1-15733141
+  [OK]   主版本 37 ≥ 34，支持 fastboot-info.txt
+────────────────────────────────────────────────────────────────
+[G3] 镜像内模块世代（期望 6.12.69-android16-6）
+  镜像                旧世代  新世代   判定
+  vendor_boot.img               0         75   OK
+  vendor_dlkm.img               0        402   OK
+  system_dlkm.img               0        207   OK
+────────────────────────────────────────────────────────────────
+[G4] 设备状态
+  [OK]   在 bootloader（is-userspace=no）
+  [OK]   product=pandora
+  [NOTE] 电量阈值被 FLASH_MIN_MV 覆盖为 4050 mV（默认 4200）
+  [OK]   电量 4098 mV
+────────────────────────────────────────────────────────────────
+[G5] 证据基线
+  adb 不可达 —— 跳过 pstore 基线与金丝雀
+  提示：这两项不是刷机前提，但缺了就无法证明 wipe 真的发生、也无法分辨 panic 新旧
+────────────────────────────────────────────────────────────────
+即将执行：./platform-tools/fastboot.exe -w update releases/Fastboot_lineage_pandora-20261102-1426.zip
+  这会真的擦掉 userdata 与 metadata，不可逆。
+  （--preflight：到此为止）

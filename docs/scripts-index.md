@@ -90,6 +90,7 @@
 | `regen_makefiles.sh` | regen_makefiles.sh —— 带闸的 setup-makefiles 包装器 |
 | `repair_index.sh` | 修复索引被清空的项目：git reset --hard HEAD |
 | `replace_kernel_modules.sh` | replace_kernel_modules.sh —— 内核模块「整目录替换」（KMI 世代对齐） |
+| `selfcheck.sh` | selfcheck.sh —— 仓库自检：语法 / 换行 / 元数据 / 文档覆盖 |
 | `setup_wsl_adb.sh` | 在 WSL 内安装 adb 并指向 Windows 的 adb server（镜像网络模式，走回环地址） |
 | `split_dtb.py` | 把 vendor_boot 里的拼接 dtb 拆成单个 dtb 文件。 |
 | `toggle_vendor.py` | 批量开关 Android.bp 中指定模块的 vendor_available。 |

@@ -286,10 +286,15 @@ esac
 
 BATT=$("$FB" getvar battery-voltage 2>&1 | sed -n 's/^battery-voltage: *//p' | head -1)
 if [ -n "${BATT:-}" ]; then
-    if [ "$BATT" -ge 4200 ] 2>/dev/null; then
+    # 阈值默认 4200 mV。这台机器是 4.5V 级电芯，77% 时约 4.04V——
+    # 按 4200 卡等于要求冲到 90% 以上，对一次 10–20 分钟的刷写过度保守。
+    # 需要时用 FLASH_MIN_MV 显式覆盖，默认值保持不变。
+    MIN_MV="${FLASH_MIN_MV:-4200}"
+    [ "$MIN_MV" != "4200" ] && info "  [NOTE] 电量阈值被 FLASH_MIN_MV 覆盖为 ${MIN_MV} mV（默认 4200）"
+    if [ "$BATT" -ge "$MIN_MV" ] 2>/dev/null; then
         info "  [OK]   电量 ${BATT} mV"
     else
-        err "  [FAIL] 电量 ${BATT} mV 偏低（<4200），全程 10–20 分钟，掉电即变砖风险"
+        err "  [FAIL] 电量 ${BATT} mV 偏低（<${MIN_MV}），全程 10–20 分钟，掉电即变砖风险"
         exit 2
     fi
 fi

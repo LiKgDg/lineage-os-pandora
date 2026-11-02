@@ -1602,3 +1602,65 @@ bash scripts/maintain/regen_makefiles.sh --restore <备份目录>
 - 动 vendor 树之前**整树备份**（`rsync -a` 到 `/root/work/` 之类），
   不要只挑几个文件备份——本次能救回来靠的是 `/root/backup-sm8850-a16/`
   这份十月底的整树副本，不是脚本的功劳。
+
+## 三十六、D4 实刷失败：无 panic、无日志，卡在 normal boot 用户态
+
+### 刷入结果（2026-11-02 19:02）
+
+| 项 | 值 |
+|---|---|
+| 包 | `Fastboot_lineage_pandora-20261102-1426.zip`，1,461,896,165 B，sha256 `60edf82a…` |
+| fastboot 退出码 | 0，耗时 **102 秒** |
+| wipe | `Erasing 'userdata'` + `Erasing 'metadata'` 均出现 |
+| super | 已重写（`update-super`） |
+| 写入分区 | 16 个（含 8 个 `_a` 逻辑槽，属 super 写入正常表现） |
+| `FAILED` | 无 |
+
+**L0 通过。** 日志里的 `wipe task partition not found: cache` 不是错误——A/B 设备无独立 cache 分区，fastboot 会继续，退出码仍为 0。
+
+### L1 失败
+
+20 分钟内 `adb devices` 始终为空，USB 侧连设备枚举都没有（设备管理器里唯一可疑项 `VID_3554&PID_FB52` 的 `BusReportedDeviceDesc` 是 "Dragonfly Y2 Master"，那是无线鼠标接收器，不是手机）。
+
+### 取证：三个日志位置全部落空
+
+| 位置 | 结果 | 原因 |
+|---|---|---|
+| `/sys/fs/pstore` | 空 | cmdline 是 **`console=ttynull`**，控制台被关，ramoops 永远不写 |
+| `/proc/last_kmsg` | 不存在 | 现代内核已移除 |
+| `oops` 分区（16 MB） | 8 条记录，**全是 `BOOT MODE:recovery`，panic 全为 0** | 失败那次**没有崩溃**，没触发 mtdoops |
+
+`bootinfo.pureason=0x80011`、`BOOT_INDEX` 从 3432 递增到 3452，说明设备在**反复重启**而不是静置在第一屏。
+
+### 结论：是挂住，不是崩溃
+
+关键推理链：
+
+1. **recovery 能起来**（`fd3af370 recovery`，adb 可用），而 recovery 与系统是**同一个包**刷进去的
+   → 内核（`6.12.69-android16-6-g43b5ab7e247d`）、ramdisk、`dtbo`、`vendor_boot` 都没问题
+2. 失败只发生在 **normal boot 的用户态阶段**：init 卡在某个 `wait_for` 上，adbd 从未启动
+   → 所以 USB 不枚举，但这不是内核没跑
+3. panic 计数为 0 → `hung_task_panic=0`，挂死不留栈，这正是最难取证的一类故障
+
+### 下次必须有日志才能继续
+
+现状下重刷一次仍然只会得到「卡第一屏 + 无日志」。要拿到证据，必须先改内核 cmdline：
+
+- 在 `device-trees/los24-pandora/BoardConfig.mk` 的 `BOARD_KERNEL_CMDLINE` 里去掉 `console=ttynull`，
+  改为串口输出或显式开启 `ramoops` 的 console/pmsg 区域
+- 重编 boot 再刷，才有 `/sys/fs/pstore` 可读
+
+在新证据出现之前，**不要再重复整包刷写**——同样的输入只会得到同样的结果，还会再清一次数据。
+
+### 工具
+
+`scripts/maintain/extract_crash_logs.sh`：从 `oops`（可选 `blackbox`）分区取日志，
+按 `##FLAGS:` 切分记录，输出元信息汇总表。首次实跑产出 8 条记录、33,457 行文本，
+见 `docs/logs/20261102T193204Z-oops.txt` 与同名 `-summary.txt`。
+
+判读要点已写进脚本末尾提示：panic 列为 0 却起不来 = 挂住；`console=ttynull` 下别在 pstore 找；
+记录全是 recovery 说明失败那次没崩。
+
+### 回滚
+
+`bash scripts/flash/restore_stock_full.sh`（7 个物理分区 + super）。设备当前停在 recovery，可随时执行。

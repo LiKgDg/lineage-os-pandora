@@ -1,0 +1,11 @@
+记录数: 8
+
+序    FLAGS  BOOT_IDX 版本           重启原因       模式                     行数     panic
+1    0      3441     24.0-2026110 Restart    recovery               5080   0
+2    1      3446     -            Restart    recovery               3912   0
+3    2      3452     24.0-2026110 Restart    recovery               5043   0
+4    3      3432     pandora:16/O Restart    recovery               3807   0
+5    4      3434     24.0-2026110 Restart    recovery               3481   0
+6    5      3436     24.0-2026110 Restart    recovery               3516   0
+7    6      3437     24.0-2026110 Restart    recovery               3307   0
+8    7      3438     -            Restart    recovery               3897   0
