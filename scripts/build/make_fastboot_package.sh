@@ -26,13 +26,15 @@ PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${PRODUCT_OUT:-/root/los24/out/target/product/pandora}"
 DEST="$PROJ/releases"
 DRY=0
+BOARD_LIST=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        -o|--out)   DEST="${2:-}"; shift 2 ;;
-        --dry-run)  DRY=1; shift ;;
-        -h|--help)  sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-        *)          echo "ERROR: 未知参数 $1" >&2; exit 2 ;;
+        -o|--out)       DEST="${2:-}"; shift 2 ;;
+        --board-list)   BOARD_LIST="${2:-}"; shift 2 ;;
+        --dry-run)      DRY=1; shift ;;
+        -h|--help)      sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *)              echo "ERROR: 未知参数 $1" >&2; exit 2 ;;
     esac
 done
 
@@ -116,7 +118,39 @@ trap 'rm -f "$MAPFILE" "$LIST"; rm -rf "$STAGE"' EXIT
 
 info ""
 info "[2] 暂存到 $STAGE"
-cp "$OUT/android-info.txt"  "$STAGE/"
+
+# ---------------------------------------------------------------------------
+# android-info.txt 改写
+#   构建系统生成的是 `board=canoe`（TARGET_BOARD_PLATFORM）。但 fastboot 解析
+#   android-info.txt 时，`board=` 会被当作对 `getvar product` 的硬要求：
+#       Checking 'product'  FAILED
+#       Device product is 'pandora'.  Update requires 'canoe'.
+#   而设备 product 是 pandora（机型代号），与平台代号 canoe 不等 → 直接拒刷。
+#
+#   改写为 `require board=<代号>|<平台>`（与 PixelOS 出货包同款写法），
+#   让 pandora 与 canoe 都放行。可用 --board-list 覆盖。
+# ---------------------------------------------------------------------------
+DEVICE_CODE=$(basename "$OUT")
+BOARD_VAL=$(grep -m1 '^board=' "$OUT/android-info.txt" 2>/dev/null | cut -d= -f2- | tr -d '[:space:]')
+
+if [ -n "$BOARD_LIST" ]; then
+    ACCEPT="$BOARD_LIST"
+elif [ -n "$BOARD_VAL" ] && [ "$BOARD_VAL" != "$DEVICE_CODE" ]; then
+    ACCEPT="${DEVICE_CODE}|${BOARD_VAL}"
+elif [ -n "$BOARD_VAL" ]; then
+    ACCEPT="$BOARD_VAL"
+else
+    ACCEPT="$DEVICE_CODE"
+fi
+
+{
+    echo "require board=${ACCEPT}"
+    # 保留原文件里除 board= 以外的行（如 version-baseband 等）
+    grep -v '^board=' "$OUT/android-info.txt" 2>/dev/null || true
+} > "$STAGE/android-info.txt"
+
+info "    android-info.txt 改写：board=${BOARD_VAL:-<无>} → require board=${ACCEPT}"
+
 cp "$OUT/fastboot-info.txt" "$STAGE/"
 while IFS= read -r name; do
     # 用硬链接避免复制 3 GB+ 数据；跨设备时退化为复制
