@@ -1699,3 +1699,30 @@ bootconfig**。所以只能往 `BOARD_KERNEL_CMDLINE` **追加**，改不掉既�
 ### 回滚
 
 `bash scripts/flash/restore_stock_full.sh`（7 个物理分区 + super）。设备当前停在 recovery，可随时执行。
+
+### 诊断尝试的阴性结果（2026-11-03 03:5x）
+
+按上一节的思路加了 `sysctl.kernel.hung_task_panic=1` + `hung_task_timeout_secs=30`，
+重编并只刷 `vendor_boot`（不动数据），结果**没有拿到栈**：
+
+| 项 | 结果 |
+|---|---|
+| `BOARD_KERNEL_CMDLINE` 落点 | **不是 boot.img**（实测 boot.img 的 cmdline 为空），而是写进 `vendor_boot` 的 vendor cmdline |
+| 重编正确目标 | `m vendorbootimage`；跑 `m bootimage` 会得到「0 steps、Build Succeeded」的**假成功** |
+| 刷入 | `vendor_boot` 单独刷，2.5 秒，未清数据 |
+| 启动后 | 240 秒内 adb 无响应，设备**自动回落到 recovery** |
+| oops 分区 | 仍是 8 条记录，panic 列全 0 —— **一次都没触发** |
+
+结论：挂死点不在 hung_task 能检测到的位置。可能更早（init 第一阶段或内核自身停顿），
+此时没有可判定的 hung 进程，`hung_task_panic` 无从下手。
+
+一个容易被误读的中间状态：重启过程中曾出现 `adb devices` 显示 `unauthorized` 约 10 秒，
+随后变成 `recovery`。**这不是「系统起来了待授权」**——是 recovery 的 adbd 初始化过程。
+后来单独重启观察 240 秒，从未稳定出现过 `device` 或 `unauthorized + product:` 组合。
+
+> 教训：用 `adb devices | grep "device$"` 轮询会漏掉 `unauthorized` / `recovery` /
+> `sideload` 这些状态，把「设备有反应」误判成「设备没反应」。判 L1 应当读原始输出。
+
+补丁已撤销（`patch_cmdline_diag.sh --revert`），构建树恢复原状。
+要继续查，需要真正能看到早期启动的输出：串口（要拆机）或内核内建 console 重定向，
+这两条都超出「改配置重刷」能解决的范围。
