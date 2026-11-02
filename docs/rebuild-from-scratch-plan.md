@@ -142,3 +142,52 @@ CONFIG_KSU_SUSFS=y  (SUSFS 全家桶)
   独立编内核 —— 快，但 GKI 12 已经弃用 build.sh，可能不适用
 
 无论哪条，都先要确认 build/kernel 这个 repo 项目是否在 LOS24 manifest 里、能否同步下来。
+
+## 进度记录三（2026-11-03 05:47）—— 三条路线成本最终评估
+
+### 三次重估，最终结论
+
+连续三层的调查，每次都推翻上一层的乐观判断：
+
+| 层次 | 当时的判断 | 查证后的事实 |
+|---|---|---|
+| 第1层 | 补 `build/kernel`(kleaf) 就能让 soong 编内核 | soong 里**没有调 kleaf 的代码**，`build/soong/kernel/` 全是 `prebuilt_kernel_modules`（处理预编译模块），不是源码编译 |
+| 第2层 | soong 内核桥接完整 | 那套"桥接"是管**预编译模块打包**（soong_zip/depmod/llvm-strip），不是 kleaf 编译 |
+| 第3层 | A2 只需写 WORKSPACE | kleaf 依赖整套 toolchain：`@kleaf_clang_toolchain`、`@gki_prebuilts`、`@dtc`、`@dwarves`、`@kmod`、`@pigz`、rust toolchain 等，由 AOSP 根 WORKSPACE 统一定义，独立装配需拉几个 GB prebuilt 且版本严格对齐 |
+
+### 真实结论
+
+这套 LOS24 树**从设计上就是「预编译内核」架构**，`TARGET_NO_KERNEL_OVERRIDE := true`
+不是权宜之计，是它唯一支持的模式。要"从源码编内核"，A1/A2 都要装配 Kleaf 完整
+toolchain，是**数天量级的工程**，投入产出不划算——除非要长期维护 pandora 内核。
+
+### 关键事实修正（对后续取证有用）
+
+1. **`console=ttynull` 是内核内建的**（`strings kernel` 直接命中，是 `CONFIG_CMDLINE` 编译进去的），
+   不在设备树里。所以「改设备树」改不掉它。
+2. 但 **vendor cmdline 是能追加的**（已实测：`sysctl.kernel.hung_task_panic=1` 那次，
+   追加的 vendor cmdline 确实进了 vendor_boot 并被内核消费）。
+3. Linux console 规则：**后出现的 `console=` 覆盖前面的**。内建 `console=ttynull` 在前，
+   只要在 vendor cmdline 追加一个**真实 console 设备**即可覆盖。
+   —— 但 pandora 无物理串口（除非拆机引 UART），`console=ttyS0` 无意义。
+4. 真正要的是 printk 进 **ramoops console**，而它**已经 enabled**
+   （`printk: legacy console [ramoops-1] enabled`）。pstore 为什么空，尚未定位——
+   这是比"改 console"更值得查的问题。
+
+### 落地产物清单（本阶段已完成，可直接使用）
+
+| 产物 | 路径 | 状态 |
+|---|---|---|
+| 内核干净基线源码 | `/root/los24/kernel/xiaomi/sm8850`（Linux 6.12.23） | ✅ 就位 |
+| 诊断内核配置 | `kernel/xiaomi/sm8850/build.config.pandora` | ✅ 已写（Bazel 用不到，留作参考） |
+| kleaf 源码 | `/root/work/kleaf`（kernel/build 仓） | ✅ 已拉 |
+| 重建方案文档 | `docs/rebuild-from-scratch-plan.md` | ✅ 本文件 |
+
+### 建议的下一步（按投入产出排序）
+
+1. **查 pstore 为什么空**（ramoops console 已 enabled 却不落盘）——纯取证，不碰内核
+2. **B 路线**：vendor cmdline 追加 console 覆盖（需先确认 pandora 有没有可用的 console 设备）
+3. 长期维护内核才走 A1/A2 完整编译
+
+> 教训：连续三次"重估成本都上调"是信号——在没查清全貌前不要给乐观工作量估计。
+> 每层只查一层就下结论，导致三次返工。
