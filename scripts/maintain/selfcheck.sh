@@ -173,6 +173,27 @@ PY
     info "  已生成 $OUT（$(grep -c '^| `' "$OUT") 条）"
 fi
 
+# ---- C7: 脚本数一致性（README / 索引 / 实际 三者必须相等）--------------------
+# 背景：曾出现 README 写「75 个脚本」但实际 78 个，靠碰巧重跑索引才发现。
+# 这类硬编码数字漂移应该让自检主动 FAIL，而不是等人发现。
+hr
+info "[C7] 脚本数一致性（README = 索引 = 实际）"
+N_ACTUAL=$(git ls-files 'scripts/**' 'tools/**' | grep -E '\.(sh|py)$' | wc -l | tr -d ' ')
+N_INDEX=$(grep -c '^| `' docs/scripts-index.md 2>/dev/null || echo 0)
+N_README=$(grep -oE "现有 \*\*[0-9]+\*\*个脚本" README.md 2>/dev/null | grep -oE "[0-9]+" | head -1)
+# 兼容「现有 **N 个**」与「现有 **N个**」两种写法（有无空格都认）
+[ -z "$N_README" ] && N_README=$(grep -oE "现有 \*\*[0-9]+ 个\*\*脚本" README.md 2>/dev/null | grep -oE "[0-9]+" | head -1)
+
+if [ -z "$N_README" ]; then
+    bad "README 里没有「现有 **N**个脚本」的声明（无法校验一致性）"
+elif [ "$N_ACTUAL" -ne "$N_INDEX" ]; then
+    bad "脚本数与索引条数不一致：实际 $N_ACTUAL，索引 $N_INDEX（跑 selfcheck.sh --index 对齐）"
+elif [ "$N_ACTUAL" -ne "$N_README" ]; then
+    bad "脚本数与 README 声明不一致：实际 $N_ACTUAL，README 写 $N_README（更新 README 里的「现有 **N**个脚本」）"
+else
+    ok "实际 $N_ACTUAL = 索引 $N_INDEX = README $N_README"
+fi
+
 # ---- 汇总 -------------------------------------------------------------------
 hr
 if [ "$FAIL" -eq 0 ]; then
