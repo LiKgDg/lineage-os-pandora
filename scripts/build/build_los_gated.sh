@@ -16,17 +16,25 @@
 #
 # 用法
 #   bash scripts/build/build_los_gated.sh            # 增量构建 + 门禁
+#   bash scripts/build/build_los_gated.sh --package  # 构建 + 门禁 + 出 fastboot 安装包
 #   bash scripts/build/build_los_gated.sh --no-build # 只跑门禁（对已有产物）
 # =============================================================================
 set -u
 
 PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="$PROJ/scripts/maintain/verify_kernel_modules.sh"
+PKG="$PROJ/scripts/build/make_fastboot_package.sh"
 OUT="/root/los24/out/target/product/pandora"
 JOBS="${JOBS:-8}"
 DO_BUILD=1
+DO_PKG=0
 
-[ "${1:-}" = "--no-build" ] && DO_BUILD=0
+for arg in "$@"; do
+    case "$arg" in
+        --no-build) DO_BUILD=0 ;;
+        --package)  DO_PKG=1 ;;
+    esac
+done
 
 err() { echo "ERROR: $*" >&2; }
 
@@ -63,8 +71,31 @@ echo "[2/2] KMI 门禁"
 if bash "$GATE"; then
     rm -f "$OUT"/*.GATE-FAILED 2>/dev/null || true
     echo
-    echo "✅ 构建 + 门禁均通过，产物可出包"
-    ls -la "$OUT"/lineage-24.0-*.zip 2>/dev/null | tail -1
+    echo "✅ 构建 + 门禁均通过"
+
+    # -----------------------------------------------------------------------
+    # 3. 可选：出 fastboot 安装包
+    # -----------------------------------------------------------------------
+    if [ "$DO_PKG" -eq 1 ]; then
+        echo
+        echo "[3/3] 生成 fastboot 安装包"
+        if [ -f "$PKG" ]; then
+            if bash "$PKG"; then
+                echo
+                echo "✅ 已产出 fastboot 安装包，可直接："
+                echo "   fastboot -w update <上面列出的 zip>"
+            else
+                err "fastboot 包生成失败"
+                exit 1
+            fi
+        else
+            err "打包脚本不存在：$PKG"
+            exit 1
+        fi
+    else
+        ls -la "$OUT"/lineage-24.0-*.zip 2>/dev/null | tail -1
+        echo "   提示：加 --package 可同时产出 fastboot 安装包"
+    fi
     exit 0
 else
     RC=$?
