@@ -83,9 +83,30 @@ win() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf
 DEVS=$("$ADB" devices 2>/dev/null | grep -c "device$")
 [ "$DEVS" -eq 1 ] || { err "adb 设备数 = $DEVS，要求恰好 1 台"; exit 2; }
 
-# root 判定：能否读块设备。这是 C 路径唯一的硬前置。
+# 提权判定：两条路都试，先看 shell 本身能不能读块设备，再看 su 能不能。
+# 这台设备实测 adb root 被系统设置关着，但 KernelSU 的 su 可用（context ksu），
+# 所以只判「块设备可读」会把能做的事误判成不能做。
+SU_MODE=0
+ROOT_OK=0
 has_root() {
     "$ADB" shell 'dd if=/dev/block/by-name/devinfo bs=512 count=1 >/dev/null 2>&1 && echo YES' 2>/dev/null | grep -q YES
+}
+has_su() {
+    n=$("$ADB" shell "su -c 'dd if=/dev/block/by-name/devinfo bs=512 count=1 2>/dev/null | wc -c'" 2>/dev/null | tr -d '\r' | tr -dc '0-9')
+    [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null
+}
+detect_root() {
+    if has_root; then SU_MODE=0; ROOT_OK=1; return 0; fi
+    if has_su;   then SU_MODE=1; ROOT_OK=1; return 0; fi
+    ROOT_OK=0; return 1
+}
+# 按检测结果在设备上执行命令。命令串内部不能含双引号（本脚本里都不含）。
+dev() {
+    if [ "$SU_MODE" -eq 1 ]; then
+        "$ADB" shell "su -c \"$1\""
+    else
+        "$ADB" shell "$1"
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -94,7 +115,11 @@ has_root() {
 if [ "$MODE" = "list" ]; then
     hr
     info "设备分区清单（$("$ADB" shell getprop ro.product.device 2>/dev/null | tr -d '\r')）"
-    info "root: $(has_root && echo 可用 || echo '不可用')"
+    if detect_root; then
+        [ "$SU_MODE" -eq 1 ] && info "root: 可用（su / KernelSU）" || info "root: 可用（adb root）"
+    else
+        info "root: 不可用 —— C 路径（dd）会被拦下"
+    fi
     hr
     printf "  %-22s %12s  %-8s %s\n" 分区 大小 OTA覆盖 备注
     TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
@@ -132,7 +157,11 @@ if [ "$MODE" = "pull" ]; then
     mkdir -p "$OUT"
     hr
     info "[B] adb pull 运行态文件树 → $OUT"
-    if has_root; then RIGHTS="root"; else RIGHTS="shell（root-only 文件会被跳过）"; fi
+    if detect_root && [ "$ROOT_OK" -eq 1 ]; then
+        if [ "$SU_MODE" -eq 1 ]; then RIGHTS="su"; else RIGHTS="adb root"; fi
+    else
+        RIGHTS="shell（root-only 文件会被跳过）"
+    fi
     info "    权限: $RIGHTS"
 
     for t in $TREES; do
@@ -171,8 +200,8 @@ fi
 # C: 分区 dd
 # ---------------------------------------------------------------------------
 if [ "$MODE" = "dd" ]; then
-    if ! has_root; then
-        err "本机 adb 无 root，块设备读取被拒（实测 Permission denied），C 路径无法执行。"
+    detect_root || {
+        err "本机取不到 root（adb root 关闭、su 不可用），块设备读取被拒，C 路径无法执行。"
         err
         err "  开启方式（二选一）："
         err "    1) 设置 → 系统 → 开发者选项 → 打开「Root 调试」→ adb root"
@@ -181,7 +210,8 @@ if [ "$MODE" = "dd" ]; then
         err "  若只是想补 blobs：不需要 C，走 A（tools/payload_dump.py）+ "
         err "  scripts/maintain/extract_blobs_from_ota.sh 即可。"
         exit 2
-    fi
+    }
+    if [ "$SU_MODE" -eq 1 ]; then info "  提权方式: su（KernelSU/Magisk）"; else info "  提权方式: adb root"; fi
 
     OUT="${OUT:-dump-device/$(date -u +%Y%m%dT%H%M%SZ)-dd}"
     mkdir -p "$OUT"
@@ -220,7 +250,7 @@ if [ "$MODE" = "dd" ]; then
             SKIPPED=$((SKIPPED + 1)); continue
         fi
 
-        sz=$("$ADB" shell "blockdev --getsize64 /dev/block/by-name/$p 2>/dev/null" | tr -d '\r')
+        sz=$(dev "blockdev --getsize64 /dev/block/by-name/$p 2>/dev/null" | tr -d '\r')
         if [ -z "$sz" ] || [ "$sz" -le 0 ] 2>/dev/null; then
             err "  [失败] $p —— 取不到分区大小"
             FAIL=$((FAIL + 1)); continue
@@ -232,10 +262,11 @@ if [ "$MODE" = "dd" ]; then
         fi
 
         printf "  %-18s %8s MiB  " "$p" "$((sz / 1048576))"
-        if "$ADB" shell "dd if=/dev/block/by-name/$p of=/data/local/tmp/dump-$p.img bs=4M 2>/dev/null && sync" >/dev/null 2>&1; then
+        # dd 后用 root chmod 644：su 写出的文件默认 root-only，shell 身份的 adb pull 读不到
+        if dev "dd if=/dev/block/by-name/$p of=/data/local/tmp/dump-$p.img bs=4M 2>/dev/null && sync && chmod 644 /data/local/tmp/dump-$p.img" >/dev/null 2>&1; then
             if "$ADB" pull "/data/local/tmp/dump-$p.img" "$(win "$OUT/$p.img")" >/dev/null 2>&1; then
                 got=$(stat -c %s "$OUT/$p.img" 2>/dev/null || echo 0)
-                "$ADB" shell "rm -f /data/local/tmp/dump-$p.img" >/dev/null 2>&1
+                dev "rm -f /data/local/tmp/dump-$p.img" >/dev/null 2>&1
                 if [ "$got" = "$sz" ]; then
                     echo "OK  $(sha256sum "$OUT/$p.img" | cut -c1-16)"
                     DONE=$((DONE + 1))

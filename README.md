@@ -358,7 +358,10 @@ D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 
 `bash scripts/maintain/dump_device.sh --list` 会列出设备全部 166 个分区，标注每个该走哪条路径。
 
-实测前提（pandora）：`/dev/block/by-name` 可以列，但**块设备读取 `Permission denied`**，所以 C 必须 root；B 在 shell 下可拉，`/vendor/etc` 750 个文件实测全部到手。
+实测前提（pandora）：`/dev/block/by-name` 可以列（166 项），但**块设备读取 `Permission denied`**，
+shell 身份做不到。`adb root` 被系统设置关着，但 **KernelSU 的 `su` 可用**（`context=u:r:ksu:s0`），
+脚本会自动识别并走 su 分支。C 路径已实跑验证：`devinfo`（8,192 B，魔数 `ANDROID-BOOT!`）与
+`persist`（48,234,496 B）落盘大小与 `docs/device-partitions.csv` 完全一致，前 1 KiB 与设备端实时读取 sha256 相同。
 
 补 blobs 不需要 C：`bash scripts/maintain/extract_blobs_from_ota.sh` 走 A 路径，
 实测 211 条缺失里有 206 条就在本地镜像内。
