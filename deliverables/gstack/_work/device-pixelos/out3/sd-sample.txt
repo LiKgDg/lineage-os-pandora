@@ -1,0 +1,10 @@
+1a5dc0ca97c41097a7207ea0adba2e89  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/arch/arm64/geniezone/gzvm.ko
+587f966e677e3efc238003088c93575d  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/bluetooth/hci_uart.ko
+ef74ad45af7670fbed51972b3a354a71  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/misc/open-dice.ko
+ce64ed22c65e93b29629da107c131f64  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/ppp/ppp_mppe.ko
+fac07693ff68d588406daa64c2ef77ed  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/usb/r8152.ko
+1ba2f2e1386cb8f231f38b832c717df2  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/rtc/lib_test.ko
+1931a2acfdb49641e1827a623c666323  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/fs/ext4/ext4-inode-test.ko
+14f8299c3b6a80c5e9e3c432747b55a3  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/mm/zsmalloc.ko
+6c01e360220d3e6ae18ca73c7b717e52  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/9p/9pnet.ko
+012c430730c9a14eaa7b689c8de02e32  /system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/ieee802154/6lowpan/ieee802154_6lowpan.ko

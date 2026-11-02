@@ -1,0 +1,559 @@
+/system_dlkm/lib/modules:
+total 12
+drwxr-xr-x 3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x 3 root root 4096 2009-01-01 08:00 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k:
+total 476
+drwxr-xr-x  3 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x  3 root root   4096 2009-01-01 08:00 ..
+drwxr-xr-x 10 root root   4096 2009-01-01 08:00 kernel
+-rw-r--r--  1 root root  69110 2009-01-01 08:00 modules.alias
+-rw-r--r--  1 root root  70980 2009-01-01 08:00 modules.alias.bin
+-rw-r--r--  1 root root  22099 2009-01-01 08:00 modules.builtin
+-rw-r--r--  1 root root  28040 2009-01-01 08:00 modules.builtin.alias.bin
+-rw-r--r--  1 root root  25532 2009-01-01 08:00 modules.builtin.bin
+-rw-r--r--  1 root root 160962 2009-01-01 08:00 modules.builtin.modinfo
+-rw-r--r--  1 root root   6728 2009-01-01 08:00 modules.dep
+-rw-r--r--  1 root root  11294 2009-01-01 08:00 modules.dep.bin
+-rw-r--r--  1 root root     97 2009-01-01 08:00 modules.devname
+-rw-r--r--  1 root root   2753 2009-01-01 08:00 modules.load
+-rw-r--r--  1 root root   3515 2009-01-01 08:00 modules.order
+-rw-r--r--  1 root root     55 2009-01-01 08:00 modules.softdep
+-rw-r--r--  1 root root  20435 2009-01-01 08:00 modules.symbols
+-rw-r--r--  1 root root  25755 2009-01-01 08:00 modules.symbols.bin
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel:
+total 40
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 arch
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 drivers
+drwxr-xr-x  5 root root 4096 2009-01-01 08:00 fs
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 kernel
+drwxr-xr-x  4 root root 4096 2009-01-01 08:00 lib
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 mm
+drwxr-xr-x 15 root root 4096 2009-01-01 08:00 net
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 sound
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/arch:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 arm64
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/arch/arm64:
+total 12
+drwxr-xr-x 3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x 2 root root 4096 2009-01-01 08:00 geniezone
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/arch/arm64/geniezone:
+total 132
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 126786 2009-01-01 08:00 gzvm.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers:
+total 88
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 android
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 base
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 block
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 bluetooth
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 char
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 clk
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 gnss
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 hid
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 iio
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 input
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 misc
+drwxr-xr-x  7 root root 4096 2009-01-01 08:00 net
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 of
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 power
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 pps
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 ptp
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 rtc
+drwxr-xr-x  5 root root 4096 2009-01-01 08:00 usb
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 virt
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 virtio
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/android:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 binder
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/android/binder:
+total 808
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 823658 2009-01-01 08:00 rust_binder.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/base:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 regmap
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/base/regmap:
+total 248
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 211378 2009-01-01 08:00 regmap-kunit.ko
+-rw-r--r-- 1 root root  15794 2009-01-01 08:00 regmap-ram.ko
+-rw-r--r-- 1 root root  16282 2009-01-01 08:00 regmap-raw-ram.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/block:
+total 68
+drwxr-xr-x  3 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 56970 2009-01-01 08:00 virtio_blk.ko
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 zram
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/block/zram:
+total 168
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 162002 2009-01-01 08:00 zram.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/bluetooth:
+total 332
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root  49706 2009-01-01 08:00 btbcm.ko
+-rw-r--r--  1 root root  48722 2009-01-01 08:00 btqca.ko
+-rw-r--r--  1 root root  31786 2009-01-01 08:00 btsdio.ko
+-rw-r--r--  1 root root 196442 2009-01-01 08:00 hci_uart.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/char:
+total 92
+drwxr-xr-x  3 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 hw_random
+-rw-r--r--  1 root root 79362 2009-01-01 08:00 virtio_console.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/char/hw_random:
+total 36
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 27970 2009-01-01 08:00 cctrng.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/clk:
+total 324
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root  66226 2009-01-01 08:00 clk-gate_test.ko
+-rw-r--r--  1 root root 231386 2009-01-01 08:00 clk-test.ko
+-rw-r--r--  1 root root  18354 2009-01-01 08:00 clk_kunit_helpers.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/gnss:
+total 44
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 33850 2009-01-01 08:00 gnss.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/hid:
+total 28
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 17938 2009-01-01 08:00 hid-uclogic-test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/iio:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 test
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/iio/test:
+total 72
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 63570 2009-01-01 08:00 iio-test-format.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/input:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 tests
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/input/tests:
+total 36
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 28266 2009-01-01 08:00 input_test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/misc:
+total 52
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 19010 2009-01-01 08:00 open-dice.ko
+-rw-r--r--  1 root root 21402 2009-01-01 08:00 vcpu_stall_detector.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net:
+total 180
+drwxr-xr-x  7 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root   4096 2009-01-01 08:00 ..
+drwxr-xr-x  4 root root   4096 2009-01-01 08:00 can
+-rw-r--r--  1 root root 128698 2009-01-01 08:00 macsec.ko
+-rw-r--r--  1 root root  22458 2009-01-01 08:00 mii.ko
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 ppp
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 slip
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 usb
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 wwan
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/can:
+total 36
+drwxr-xr-x 4 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 7 root root  4096 2009-01-01 08:00 ..
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 dev
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 slcan
+-rw-r--r-- 1 root root 19346 2009-01-01 08:00 vcan.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/can/dev:
+total 104
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 4 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 96738 2009-01-01 08:00 can-dev.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/can/slcan:
+total 48
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 4 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 40866 2009-01-01 08:00 slcan.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/ppp:
+total 260
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 7 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 25282 2009-01-01 08:00 bsd_comp.ko
+-rw-r--r-- 1 root root 28370 2009-01-01 08:00 ppp_deflate.ko
+-rw-r--r-- 1 root root 99994 2009-01-01 08:00 ppp_generic.ko
+-rw-r--r-- 1 root root 29706 2009-01-01 08:00 ppp_mppe.ko
+-rw-r--r-- 1 root root 21434 2009-01-01 08:00 pppox.ko
+-rw-r--r-- 1 root root 39002 2009-01-01 08:00 pptp.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/slip:
+total 32
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 7 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 24530 2009-01-01 08:00 slhc.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/usb:
+total 804
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 7 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root  50338 2009-01-01 08:00 aqc111.ko
+-rw-r--r-- 1 root root 105722 2009-01-01 08:00 asix.ko
+-rw-r--r-- 1 root root  80634 2009-01-01 08:00 ax88179_178a.ko
+-rw-r--r-- 1 root root  20226 2009-01-01 08:00 cdc_eem.ko
+-rw-r--r-- 1 root root  35378 2009-01-01 08:00 cdc_ether.ko
+-rw-r--r-- 1 root root  70666 2009-01-01 08:00 cdc_ncm.ko
+-rw-r--r-- 1 root root 282330 2009-01-01 08:00 r8152.ko
+-rw-r--r-- 1 root root  19218 2009-01-01 08:00 r8153_ecm.ko
+-rw-r--r-- 1 root root  42058 2009-01-01 08:00 rtl8150.ko
+-rw-r--r-- 1 root root  90258 2009-01-01 08:00 usbnet.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/net/wwan:
+total 76
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 7 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 65562 2009-01-01 08:00 wwan.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/of:
+total 24
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 13658 2009-01-01 08:00 of_kunit_helpers.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/power:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 sequencing
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/power/sequencing:
+total 56
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 46642 2009-01-01 08:00 pwrseq-core.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/pps:
+total 56
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 47114 2009-01-01 08:00 pps_core.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/ptp:
+total 112
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 83754 2009-01-01 08:00 ptp.ko
+-rw-r--r--  1 root root 19754 2009-01-01 08:00 ptp_kvm.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/rtc:
+total 24
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 16010 2009-01-01 08:00 lib_test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/usb:
+total 20
+drwxr-xr-x  5 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 class
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 mon
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 serial
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/usb/class:
+total 92
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 5 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 83514 2009-01-01 08:00 cdc-acm.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/usb/mon:
+total 100
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 5 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 93050 2009-01-01 08:00 usbmon.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/usb/serial:
+total 268
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 5 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 166834 2009-01-01 08:00 ftdi_sio.ko
+-rw-r--r-- 1 root root  96130 2009-01-01 08:00 usbserial.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/virt:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 halla
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/virt/halla:
+total 100
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 92954 2009-01-01 08:00 exynos-hvm.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/drivers/virtio:
+total 192
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 22 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 49130 2009-01-01 08:00 virtio_balloon.ko
+-rw-r--r--  1 root root 75058 2009-01-01 08:00 virtio_pci.ko
+-rw-r--r--  1 root root 22298 2009-01-01 08:00 virtio_pci_legacy_dev.ko
+-rw-r--r--  1 root root 35234 2009-01-01 08:00 virtio_pci_modern_dev.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/fs:
+total 20
+drwxr-xr-x  5 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 ext4
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 fat
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 netfs
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/fs/ext4:
+total 24
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 5 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 15650 2009-01-01 08:00 ext4-inode-test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/fs/fat:
+total 28
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 5 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 17938 2009-01-01 08:00 fat_test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/fs/netfs:
+total 344
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 5 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 343018 2009-01-01 08:00 netfs.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/kernel:
+total 4252
+drwxr-xr-x  3 root root    4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root    4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 4340058 2009-01-01 08:00 kheaders.ko
+drwxr-xr-x  2 root root    4096 2009-01-01 08:00 time
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/kernel/time:
+total 24
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 15338 2009-01-01 08:00 time_test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/lib:
+total 16
+drwxr-xr-x  4 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 crypto
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 kunit
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/lib/crypto:
+total 24
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 4 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 13058 2009-01-01 08:00 libarc4.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/lib/kunit:
+total 324
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 4 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root  34634 2009-01-01 08:00 kunit-example-test.ko
+-rw-r--r-- 1 root root  97874 2009-01-01 08:00 kunit-test.ko
+-rw-r--r-- 1 root root 150058 2009-01-01 08:00 kunit.ko
+-rw-r--r-- 1 root root  35690 2009-01-01 08:00 platform-test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/mm:
+total 72
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 63778 2009-01-01 08:00 zsmalloc.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net:
+total 60
+drwxr-xr-x 15 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 6lowpan
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 8021q
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 9p
+drwxr-xr-x  4 root root 4096 2009-01-01 08:00 bluetooth
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 can
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 core
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 ieee802154
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 l2tp
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 mac802154
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 nfc
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 rfkill
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 tipc
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 vmw_vsock
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/6lowpan:
+total 168
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 46906 2009-01-01 08:00 6lowpan.ko
+-rw-r--r--  1 root root 13674 2009-01-01 08:00 nhc_dest.ko
+-rw-r--r--  1 root root 13682 2009-01-01 08:00 nhc_fragment.ko
+-rw-r--r--  1 root root 13674 2009-01-01 08:00 nhc_hop.ko
+-rw-r--r--  1 root root 13674 2009-01-01 08:00 nhc_ipv6.ko
+-rw-r--r--  1 root root 13682 2009-01-01 08:00 nhc_mobility.ko
+-rw-r--r--  1 root root 13674 2009-01-01 08:00 nhc_routing.ko
+-rw-r--r--  1 root root 15570 2009-01-01 08:00 nhc_udp.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/8021q:
+total 88
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 81650 2009-01-01 08:00 8021q.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/9p:
+total 236
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 185706 2009-01-01 08:00 9pnet.ko
+-rw-r--r--  1 root root  43066 2009-01-01 08:00 9pnet_fd.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/bluetooth:
+total 1340
+drwxr-xr-x  4 root root    4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root    4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 1361594 2009-01-01 08:00 bluetooth.ko
+drwxr-xr-x  2 root root    4096 2009-01-01 08:00 hidp
+drwxr-xr-x  2 root root    4096 2009-01-01 08:00 rfcomm
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/bluetooth/hidp:
+total 100
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 4 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 92074 2009-01-01 08:00 hidp.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/bluetooth/rfcomm:
+total 172
+drwxr-xr-x 2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 4 root root   4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 163898 2009-01-01 08:00 rfcomm.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/can:
+total 228
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 58170 2009-01-01 08:00 can-bcm.ko
+-rw-r--r--  1 root root 46490 2009-01-01 08:00 can-gw.ko
+-rw-r--r--  1 root root 50986 2009-01-01 08:00 can-raw.ko
+-rw-r--r--  1 root root 58794 2009-01-01 08:00 can.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/core:
+total 48
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 39898 2009-01-01 08:00 dev_addr_lists_test.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/ieee802154:
+total 356
+drwxr-xr-x  3 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root   4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 6lowpan
+-rw-r--r--  1 root root 294114 2009-01-01 08:00 ieee802154.ko
+-rw-r--r--  1 root root  57210 2009-01-01 08:00 ieee802154_socket.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/ieee802154/6lowpan:
+total 60
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 49850 2009-01-01 08:00 ieee802154_6lowpan.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/l2tp:
+total 188
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 119586 2009-01-01 08:00 l2tp_core.ko
+-rw-r--r--  1 root root  58946 2009-01-01 08:00 l2tp_ppp.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/mac802154:
+total 284
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 280298 2009-01-01 08:00 mac802154.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/nfc:
+total 220
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 216674 2009-01-01 08:00 nfc.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/rfkill:
+total 76
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 68922 2009-01-01 08:00 rfkill.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/tipc:
+total 744
+drwxr-xr-x  2 root root   4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root   4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 733634 2009-01-01 08:00 tipc.ko
+-rw-r--r--  1 root root  16058 2009-01-01 08:00 tipc_diag.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/net/vmw_vsock:
+total 56
+drwxr-xr-x  2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 15 root root  4096 2009-01-01 08:00 ..
+-rw-r--r--  1 root root 45098 2009-01-01 08:00 vmw_vsock_virtio_transport.ko
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/sound:
+total 12
+drwxr-xr-x  3 root root 4096 2009-01-01 08:00 .
+drwxr-xr-x 10 root root 4096 2009-01-01 08:00 ..
+drwxr-xr-x  2 root root 4096 2009-01-01 08:00 soc
+
+/system_dlkm/lib/modules/6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k/kernel/sound/soc:
+total 84
+drwxr-xr-x 2 root root  4096 2009-01-01 08:00 .
+drwxr-xr-x 3 root root  4096 2009-01-01 08:00 ..
+-rw-r--r-- 1 root root 58450 2009-01-01 08:00 soc-topology-test.ko
+-rw-r--r-- 1 root root 16058 2009-01-01 08:00 soc-utils-test.ko

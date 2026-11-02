@@ -11,6 +11,11 @@
 # 镜像目录（由 make_super.sh / build_*.sh 产出，见 releases/README.md）
 sysonly/
 
+# 发布包目录（第三方 ROM 的出货产物，整目录都是构建物，非源码）
+# 例：PixelOS_pandora-17.0-20261102/、UotanToolbox_lineage-24.0-*-pandora.zip/（解包后）
+PixelOS_*/
+Fastboot_PixelOS_*/
+
 # OTA 原厂包（体积过大，且属小米分发物，请从官方渠道获取）
 pandora-ota_*.zip
 
@@ -35,6 +40,10 @@ vendor/*/*/proprietary/
 
 # ── 通用二进制，防止其它位置漏网 ─────────────────────────────────
 *.ko
+# 例外：recovery 预置的 exFAT 模块是源码资产，不是构建产物
+# （丢了它 TWRP 就挂不上 exFAT 分区；重新 clone 后会缺失）
+# 两棵树的深度不同（los-pandora 是 2 层，twrp-pandora 是 4 层），用 ** 一并覆盖
+!device-trees/**/recovery/root/vendor/lib/modules/**/*.ko
 *.dtb
 *.a
 *.o

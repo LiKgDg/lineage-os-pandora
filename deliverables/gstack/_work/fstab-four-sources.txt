@@ -1,0 +1,19 @@
+########## 四来源 sha256 ##########
+fstab-los-vendoretc.qcom               8928 B  6a6f28e52f571132bbd66a60ff89e12a88557f662bad0ddba66c6f6635b55a09
+fstab-los-firststage.qcom              8928 B  6a6f28e52f571132bbd66a60ff89e12a88557f662bad0ddba66c6f6635b55a09
+fstab-stock-vendoretc.qcom            13814 B  391d51430df0cb45a916e5508ebed51fade8b13d9674d7d04ee438031b382f1b
+fstab-stock-firststage.qcom           13814 B  391d51430df0cb45a916e5508ebed51fade8b13d9674d7d04ee438031b382f1b
+
+########## userdata / metadata 行 ##########
+-- fstab-los-vendoretc.qcom --
+/dev/block/by-name/metadata                             /metadata              f2fs    noatime,nosuid,nodev,discard                         wait,check,formattable,first_stage_mount
+/dev/block/bootdevice/by-name/userdata                  /data                  f2fs    noatime,nosuid,nodev,discard,reserve_root=32768,resgid=1065,fsync_mode=nobarrier,inlinecrypt,atgc   latemount,wait,check,formattable,fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0,keydirectory=/metadata/vold/metadata_encryption,metadata_encryption=aes-256-xts:wrappedkey_v0,quota,reservedsize=128M,sysfs_path=/sys/devices/platform/soc/1d84000.ufshc,checkpoint=fs
+
+-- fstab-stock-vendoretc.qcom --
+/dev/block/by-name/metadata                             /metadata              f2fs    noatime,nosuid,nodev,discard                         wait,check,formattable,first_stage_mount
+/dev/block/bootdevice/by-name/userdata                  /data                  f2fs    noatime,nosuid,nodev,discard,reserve_root=32768,resgid=1065,fsync_mode=nobarrier,inlinecrypt   latemount,wait,check,formattable,fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0,keydirectory=/metadata/vold/metadata_encryption,metadata_encryption=aes-256-xts:wrappedkey_v0,quota,reservedsize=128M,sysfs_path=/sys/devices/platform/soc/1d84000.ufshc,checkpoint=fs
+
+########## userdata 行 token 级差集（按空格与逗号切分） ##########
+-- 只在 stock 有 --
+-- 只在 LOS 有 --
+   atgc

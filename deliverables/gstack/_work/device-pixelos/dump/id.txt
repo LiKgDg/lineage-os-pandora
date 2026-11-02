@@ -1,0 +1,9 @@
+== 基本身份 ==
+uname: Linux localhost 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k #1 SMP PREEMPT Tue Sep  8 15:08:49 UTC 2026 aarch64 Toybox
+uptime: 136.89 899.48
+boot_completed: 1
+custom_version: PixelOS_pandora-17.0-20261102-0424
+build_flavor: custom_pandora-user
+vendor_fp: Xiaomi/pandora/pandora:16/BQ2A.260225.001-BP2A.250705.008/OS4.0.5.0.XBLCN:user/release-keys
+system_fp: Xiaomi/missi/missi:17/CP2A.260605.016/17OS4.0.261020.223031081.QCPECN.S:user/release-keys
+boottime_ms: btime 1793564623

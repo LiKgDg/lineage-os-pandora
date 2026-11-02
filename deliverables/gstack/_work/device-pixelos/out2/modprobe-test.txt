@@ -1,0 +1,11 @@
+=== modprobe 实测（-d /vendor/lib/modules）===
+  mem_object -> rc=1 modprobe: LoadWithAliases was unable to load mem_object, tried: mem_object
+modprobe: Failed to load module mem_object: No such file or directory
+  mi_schedule -> rc=1 modprobe: LoadWithAliases was unable to load mi_schedule, tried: mi_schedule
+modprobe: Failed to load module mi_schedule: No such file or directory
+  qcom_tzmem -> rc=1 modprobe: LoadWithAliases was unable to load qcom_tzmem, tried: qcom_tzmem
+modprobe: Failed to load module qcom_tzmem: No such file or directory
+  bcl_soc -> rc=1 modprobe: LoadWithAliases was unable to load bcl_soc, tried: bcl_soc
+modprobe: Failed to load module bcl_soc: No such file or directory
+  mi_game -> rc=1 modprobe: LoadWithAliases was unable to load mi_game, tried: mi_game
+modprobe: Failed to load module mi_game: No such file or directory

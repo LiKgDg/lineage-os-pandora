@@ -27,7 +27,8 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 
 | 问题 | 现状 | 下一步 |
 |---|---|---|
-| system-only 未启动 | `super.img` 刷入后设备回落 stock，未进系统 | 需抓 `logcat` / `pstore` 定位首次启动失败点 |
+| **LOS 24 完整 ROM 启动失败** | **根因已定案（离线 + 实机交叉验证）**：内核模块与内核 KMI 世代错配——`vendor_boot` 405/461、`vendor_dlkm` 366/402 是 6.12.23（android16-5）世代，内核是 6.12.69（android16-6）；`module_layout` CRC `0xe976b219` ≠ `0x797f2b3e`（后者已由 PixelOS 实机启动验证）。另有**清单与索引缺陷**：清单差集 66 条（实机折算 41 个真会漏加载），5 个索引文件也是 A16 生成的 | 按 `deliverables/gstack/_member/qa-fix-runbook.md` 的 **A2+ 整目录替换**执行（`vendor_ramdisk/lib/modules/`、`vendor_dlkm/lib/modules/`、`system_dlkm_flatten/` 三处整体替换，`system_dlkm/` 不动），然后重刷。验收判据：三处与 PixelOS 对应目录**逐字节相同**。⚠️ **LOS 的 OTA 包已从项目根目录删除**，重刷前需重新构建或找回 |
+| system-only 未启动 | `super.img` 刷入后设备回落 stock，未进系统 | 与上一行同源，先用同一门禁脚本排除模块问题，再抓 `logcat` / `pstore` |
 | fastbootd 热切 | `rc-mode fastboot` 落到 bootloader 而非 fastbootd | `sys.usb.ffs.ready` 时序问题，见文档 |
 | TWRP 数据解密 | `/data` 能挂载但 CE 区未解密，日志报 `Unknown password type` | Android 16 的 spblob 新格式（`.e0`/`.p1`/`.spblob`）TWRP 3.7.1 解析不了，属上游适配问题 |
 | 完整 ROM 设备树 | `sm8850-common` 已定位，但机型树/blobs/kernel/`hardware/qcom-caf/sm8850` 缺 | 见下节"完整 ROM 的缺口" |
@@ -52,7 +53,7 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 │   ├── flash/                 镜像拼装与刷机
 │   ├── patch/                 recovery / USB 补丁
 │   ├── device/                设备树装配脚本与片段
-│   └── maintain/              磁盘、证书、环境维护、缺失项目补齐
+│   └── maintain/              磁盘、证书、环境维护、缺失项目补齐、内核模块门禁
 ├── device-trees/
 │   ├── los-pandora/           LineageOS 侧设备树与 blob 清单
 │   └── twrp-pandora/          TWRP 侧设备树（来自 TWRP-Test/sm8850）
@@ -61,8 +62,33 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 │   ├── gen_blob_list.py       ELF 依赖递归生成 blob 清单
 │   ├── gen_vendor_bp.py       生成 soong 包（当前使用）
 │   └── gen_vendor_mk.py       生成 make 包（已废弃，见文件头说明）
+├── deliverables/gstack/       工程分析报告与取证工作区
+│   ├── offline-evidence-closure-los24-kmi-2026-11-01.md   启动失败根因定案（模块 KMI 错配）
+│   ├── pixelos-cross-reference-2026-11-02.md              PixelOS 交叉验证（缺陷范围圈定、方案翻转）
+│   ├── _member/               各角色原始产出（修复手册、实验矩阵、离线取证）
+│   └── _work/                 取证脚本与文本证据，见其中 README.md
 └── releases/                  镜像发布说明（实际镜像见 GitHub Release）
 ```
+
+---
+
+## 执行边界：哪些在 WSL 里跑
+
+**Windows 工作区只做「调度 + 收证据」，编译与解包一律在 WSL 的 ext4 内完成，本项目目录不落 `.ko` / 内核源码 / `out/`。**
+
+| 在 WSL 里跑（产物也只留 WSL） | 在 Windows 工作区 |
+|---|---|
+| `repo sync`：`/root/los24`（LOS 24.0，1400 项目 / 409 GB）、`/root/android/lineage`（TWRP） | 文档、脚本、设备树（`docs/` `scripts/` `device-trees/` `tools/`） |
+| `make`：`out/target/product/pandora/**`（含 1069 个 `.ko`） | 小体量一手证据：fstab 文本、`los_kconfig.txt`、刷机日志、`getvar` |
+| 内核解包 / dtb / `mkbootimg` / `lpmake` | 哈希与统计：sha256、`module_layout` CRC 分布、清单对账表 |
+| 镜像取证：`debugfs`、`mount -t erofs`、`cpio`、`lz4` | 刷机：`platform-tools/`（设备由 Windows 侧持有） |
+| 模块校验：`modinfo -F vermagic`、`modprobe --dump-modversions` | 纯 Python 只读解析器（`ext4mini.py` 等，只吐文本） |
+
+判定标准是「能不能从现有输入重算」：能重算的留在 WSL，不能重算的回写项目。
+
+- 中间态落 `/root/work/gstack/`，**不要放 `/tmp`**（WSL 空闲会重启，`/tmp` 清空），**也不要放 `/mnt/c`**（9p 协议慢、缺可执行位与符号链接，且旧世代 `.ko` 会在共享目录里存活）。
+- 例外：**小体积文本证据**（fstab、`los_kconfig.txt`、`modules.load`、CRC 报表）和**不再改动的镜像副本**（stock 的 `vendor_dlkm` / `system_dlkm`，共约 75 MB）落在 `deliverables/gstack/_work/`，因为它们要随报告一起交付；含 `.ko` 的实验目录仍留在 WSL 内部。
+- 完整分析与踩坑记录见 [`deliverables/gstack/offline-evidence-closure-los24-kmi-2026-11-01.md`](deliverables/gstack/offline-evidence-closure-los24-kmi-2026-11-01.md) §5。
 
 ---
 
@@ -123,6 +149,56 @@ bash scripts/build/build_twrp.sh 10       # 前台编译，GUI 终端可见进�
 产物 `out/target/product/sm8850/recovery.img`，校验与踩坑见
 [`docs/twrp-build-notes.md`](docs/twrp-build-notes.md)。
 
+### 6. 出包前校验内核模块（必做）
+
+```bash
+# 构建树模式：判据是 module_layout 的 CRC，最精确
+bash scripts/maintain/verify_kernel_modules.sh
+
+# 镜像模式：直接查即将刷进去的那几个 .img，不需要 root、不需要挂载
+bash scripts/maintain/verify_kernel_modules.sh --images /path/to/images
+```
+
+退出码 0 才允许刷机。构建树模式扫四个目录——`vendor_ramdisk`、`vendor_dlkm`、
+`system_dlkm` 的**版本化目录**与 **flatten 副本**——做四查：
+
+| 检查 | 内容 | 是否阻塞 |
+|---|---|---|
+| C1 | 每个 `.ko` 的 `module_layout` CRC 等于内核期望值 | ✅ 硬门禁 |
+| C1b | 每个 `.ko` 的 vermagic 版本段与期望 KMI 一致 | ⚠️ 告警 |
+| C2 | `modules.load` 每条都能在目录内找到同名文件 | ✅ 硬门禁 |
+| C3 | `modules.load` 无重复条目 | ⚠️ 告警 |
+
+> C1b 只告警是有原因的：`CONFIG_MODVERSIONS=y` 时内核 `same_magic()` 只比较
+> vermagic 第一个空格**之后**的标志位，版本段被跳过——所以版本串不同不必然加载失败，
+> 真正决定成败的是 CRC。C3 同理：原厂 stock 自己就有 263 条重复且能正常开机。
+
+镜像模式查的是镜像内旧世代 vermagic 字符串的计数。判据是二值的：**已知正确的 stock
+镜像是 0，本次出问题的 LOS 镜像是 53 / 366 / 102**。它拦不住理论上「CRC 变了但
+vermagic 没变」的边角情况，但能拦住实际发生的这一类。
+
+**刷机脚本已经接上这道闸**：`flash_los_full.sh` 与 `flash_los_with_recovery.sh` 在刷之前
+自动跑 `--images`，不通过就退出（退出码 2）。要跳过必须显式写 `--no-check` /
+`LOS_SKIP_KMI_CHECK=1`——不能靠「没注意」。
+
+两个脚本的分工：`clean_stale_modules.sh` 负责**删干净** `out/` 里的旧世代残留，
+`verify_kernel_modules.sh` 负责**判干净**。编译前后各跑一次最稳。
+
+```bash
+bash scripts/maintain/clean_stale_modules.sh --dry-run   # 先看要删什么
+bash scripts/maintain/clean_stale_modules.sh             # 再删
+```
+
+### 7. 刷入 LOS（fastbootd，13 分区）
+
+```bash
+bash scripts/flash/flash_los_full.sh --img /path/to/images
+```
+
+会先跑 KMI 检查、再确认设备已在 fastbootd、然后逐个分区刷入，全程 tee 到
+`docs/logs/<UTC>-flash-los-full.log`。退出码 0 才是真成功——**别只看屏幕上的
+「中断于第 N 个」**，那行文字以前是唯一的信号，而脚本的 `$?` 一直是 0。
+
 ---
 
 ## LineageOS 24.0 完整 ROM 进度
@@ -148,7 +224,7 @@ bash scripts/build/build_twrp.sh 10       # 前台编译，GUI 终端可见进�
 | D1 | `lunch lineage_pandora-trunk_staging-userdebug` | ✅ 通过 |
 | D2 | `m nothing`（全量 soong 分析） | ✅ 通过（30:07，0 error） |
 | D3 | `mka bacon` 出 zip | ✅ **通过**（1.11 GB OTA 包） |
-| D4 | 刷入并启动 | ⏸ 待刷机验证 |
+| D4 | 刷入并启动 | 🔴 **不通过，根因已定案**：模块 KMI 世代错配。修复路径与覆盖率已验证，见 [`deliverables/gstack/offline-evidence-closure-los24-kmi-2026-11-01.md`](deliverables/gstack/offline-evidence-closure-los24-kmi-2026-11-01.md) |
 
 D3 产物：
 
@@ -162,6 +238,9 @@ sha256 ed4c316b4d5ebd7a19db90df2504de8d02554999f7f137970d03d6fac7395ef8
 `recovery` `pvmfw` `vbmeta` `vbmeta_system`。
 
 副本：`D:\WSL\out\pandora\`
+
+后续另有一次 **A17 重建**（11-01 18:26，`lineage-24.0-20261101-UNOFFICIAL-pandora.zip`，
+1,189,706,189 字节），该产物**从未刷入**，是本次根因分析的对象。两次产物都带着同一个模块世代缺陷。
 
 D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 
@@ -190,6 +269,25 @@ D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 6. **`repo init` 的 `-g` 决定拉哪些项目**，加在 `sync` 上无效；漏组时 `repo sync` 静默跳过、不报错。
 7. **GKI 内核跨机型共用**：pandora 与 popsicle 的 `kernel` 二进制 sha256 完全一致，
    但 `dtbo.img` 与 `vendor_dlkm` 是机型专属，不能复用。
+8. **换内核必须连模块一起换，且「文件名清单一致」不能当「内容一致」**。本次启动失败的根因是
+   内核换成了 stock 的 6.12.69，而 `vendor_ramdisk/` 与 `vendor_dlkm/` 里仍是 6.12.23 的模块：
+   两侧 `.ko` 文件名 461 个全同，**内容 411 个不同**，`module_layout` CRC `0xe976b219` vs `0x797f2b3e`，
+   `modules.load` 150 条可加载 0 条。排除级证据必须是哈希或 CRC，不能是清单。
+9. **本机模块是一份固定的预编译产物，不是源码构建**。PixelOS（同机型 A17 出货构建）的
+   461 + 402 个模块与 stock **逐字节完全相同**，五个 `modules.*` 索引 md5 也相同。
+   所以修复方式是「整目录替换」，不是「重编内核」——重编这条路在这个设备上不存在。
+   实机验证：PixelOS 已启动（`sys.boot_completed=1`），抽样 40 个 `.ko` + 5 个索引
+   **全部与镜像 md5 相同**，即「镜像 = 运行态」。
+10. **手写 `modules.load` 与陈旧索引是一类独立的缺陷源**。LOS 的清单不只多了 8 条幽灵，
+    还少了 66 条（按实机 `lsmod` 折算，**41 个真会漏加载**）；更硬的是
+    `modules.alias` / `.dep` / `.softdep` **也全是 A16 生成的**，autoload 与依赖解析会全错。
+    用厂商随包发布的清单 + 索引，不要手工裁剪。
+11. **`fastboot-info.txt` 是 `fastboot -w` 的行为来源**。出货构建里它写着
+    `if-wipe erase userdata` + `if-wipe erase metadata`；本项目的 OTA 包里没有这个文件，
+    `-w` 因此只擦了 metadata——「`✓ userdata 已清空`」是假成功。
+12. **失败后怎么取证**：设备 `panic_on_oops=1`、ramoops 通道实测可用。
+    若 LOS panic，刷回 PixelOS 后读 `/sys/fs/pstore/console-ramoops-0` 就能拿到栈
+    （ramoops 是预留内存，跨重启保留）。纯 userspace hang 留不下（`hung_task_panic=0`）。
 
 ---
 

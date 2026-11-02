@@ -1,0 +1,10 @@
+f856b7095356b684f0aa39f76714c3c0  /system_dlkm/flatten/lib/modules/6lowpan.ko
+28a1e988df82f5d066bd7d159113f831  /system_dlkm/flatten/lib/modules/btqca.ko
+cccc22cf51f9ce9778562fd044929ca6  /system_dlkm/flatten/lib/modules/cdc_ether.ko
+3ec4f13abb607c82a41a6c08701ce5f1  /system_dlkm/flatten/lib/modules/gnss.ko
+1ac367f234dbf5f4d11bcf4cf7ec197c  /system_dlkm/flatten/lib/modules/kheaders.ko
+c182c1cbc00993e78464ad83d56d1a64  /system_dlkm/flatten/lib/modules/mii.ko
+9c02a6955ed2ec3d4811870122e0dcfd  /system_dlkm/flatten/lib/modules/of_kunit_helpers.ko
+2ad513a43c852c15a8bbefbcf3e12328  /system_dlkm/flatten/lib/modules/ptp_kvm.ko
+d8ca7e2336170f01ff7c57275cf9de82  /system_dlkm/flatten/lib/modules/rust_binder.ko
+ff4bd49ab01c397ffc791b12062e6adc  /system_dlkm/flatten/lib/modules/usbserial.ko

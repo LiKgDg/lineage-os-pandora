@@ -1,0 +1,4 @@
+total 0
+dr-xr-x---  2 system log     0 1970-01-01 21:35 .
+drwxr-xr-x 12 root   root    0 1970-01-01 08:00 ..
+-r--r-----  1 system log  1785 1970-01-01 21:35 pmsg-ramoops-0

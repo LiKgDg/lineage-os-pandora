@@ -1,0 +1,417 @@
+== 0. 整目录重建（旧世代 .ko 残留是本次事故同源风险）==
+== 1. 从 stock OTA 的 payload.bin 提 3 个分区（只读源，不复用中间产物）==
+payload.bin raw offset: 5173
+partitions: 58
+-- vendor_boot: 48 ops, new_size=100663296
+   -> /root/work/gstack/qa/src/stock_vendor_boot.img (100663296 bytes)
+-- vendor_dlkm: 29 ops, new_size=59584512
+   -> /root/work/gstack/qa/src/stock_vendor_dlkm.img (59584512 bytes)
+-- system_dlkm: 9 ops, new_size=17281024
+   -> /root/work/gstack/qa/src/stock_system_dlkm.img (17281024 bytes)
+== 2. vendor_boot ramdisk → cpio ==
+  stock_vendor_boot.img: vendor_ramdisk 22173394 -> cpio 55214592 (lz4-legacy)
+  vendor_boot.img: vendor_ramdisk 18500448 -> cpio 50159616 (lz4-legacy)
+== 3. 解 cpio ==
+== 4. 挂载 dlkm ==
+== 5. 拍平 ==
+   los-vb                  461 .ko  冲突 0  modules.load=150
+   stock-vb                461 .ko  冲突 0  modules.load=172
+   los-vd                  402 .ko  冲突 0  modules.load=569
+   stock-vd                402 .ko  冲突 0  modules.load=665
+   system_dlkm 版本目录: LOS=6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k
+   los-sd-ver              103 .ko  冲突 0  modules.load=82
+   stock-sd-ver            103 .ko  冲突 0  modules.load=82
+   los-sd-flat             103 .ko  冲突 0  modules.load=82
+   stock-sd-flat           103 .ko  冲突 0  modules.load=82
+== 6. 方案 A：stock 同名 .ko 覆盖 LOS ==
+   fixed-vb               替换 405  相同  56  stock无同名 0
+   fixed-vd               替换 366  相同  36  stock无同名 0
+   fixed-sd-flat          替换 102  相同   1  stock无同名 0
+== 7. 清 modules.load：删悬空 + 去重 ==
+   fixed-vb: 原 150 条 → 去悬空 142 条 → 去重 139 条
+   fixed-vd: 原 569 条 → 去悬空 561 条 → 去重 366 条
+
+== 模块集清单 ==
+  fixed-sd-flat     103 .ko  82 modules.load
+  fixed-vb          461 .ko  139 modules.load
+  fixed-vd          402 .ko  366 modules.load
+  los-sd-flat       103 .ko  82 modules.load
+  los-sd-ver        103 .ko  82 modules.load
+  los-vb            461 .ko  150 modules.load
+  los-vd            402 .ko  569 modules.load
+  stock-sd-flat     103 .ko  82 modules.load
+  stock-sd-ver      103 .ko  82 modules.load
+  stock-vb          461 .ko  172 modules.load
+  stock-vd          402 .ko  665 modules.load
+
+### 语法检查 OK
+
+############ 实测 1：LOS 现状（期望 FAIL） ############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/3: los-vb
+  [C1]  CRC 一致        : 56 / 461   FAIL —— 405 个不符
+        CRC 分布: 0x797f2b3e=56  0xe976b219=405  
+        不符样例（最多 8 条）:
+         adsp_sleepmon.ko                         0xe976b219
+         altmode-glink.ko                         0xe976b219
+         arm_smmu.ko                              0xe976b219
+         arm_smmu_pmu.ko                          0xe976b219
+         bam_dma.ko                               0xe976b219
+         bcl_pmic5.ko                             0xe976b219
+         bcl_soc.ko                               0xe976b219
+         binder_gki.ko                            0xe976b219
+         ……（其余 397 个省略）
+  [C1b] vermagic 版本段 : 56 / 461   WARN —— 405 个不是 6.12.69-android16-6*（不阻塞，见 --help）
+        vermagic 分布: 6.12.69-android16-6-4k×56  6.12.23-android16-5-gd8653a69a3aa-mi-4k×405  
+  [C2]  条目可解析      : 142 / 150   FAIL —— 8 条悬空
+         悬空: mem_object.ko
+         悬空: metis.ko
+         悬空: mi_mem_epoll.ko
+         悬空: mi_mem_limit.ko
+         悬空: mi_schedule.ko
+         悬空: migt.ko
+         悬空: miloadtrace.ko
+         悬空: qcom_tzmem.ko
+  [C3]  无重复条目      : 唯一 147 / 150   WARN —— 3 条重复（不阻塞，见 --help）
+         重复: bootinfo.ko
+         重复: debug_ext.ko
+         重复: smcinvoke_dlkm.ko
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+集合 2/3: los-vd
+  [C1]  CRC 一致        : 36 / 402   FAIL —— 366 个不符
+        CRC 分布: 0x797f2b3e=36  0xe976b219=366  
+        不符样例（最多 8 条）:
+         adsp_loader_dlkm.ko                      0xe976b219
+         adsp_sleepmon.ko                         0xe976b219
+         altmode-glink.ko                         0xe976b219
+         audio_pkt_dlkm.ko                        0xe976b219
+         audio_prm_dlkm.ko                        0xe976b219
+         audpkt_ion_dlkm.ko                       0xe976b219
+         bam_dma.ko                               0xe976b219
+         boot_stats.ko                            0xe976b219
+         ……（其余 358 个省略）
+  [C1b] vermagic 版本段 : 36 / 402   WARN —— 366 个不是 6.12.69-android16-6*（不阻塞，见 --help）
+        vermagic 分布: 6.12.69-android16-6-4k×36  6.12.23-android16-5-gd8653a69a3aa-mi-4k×366  
+  [C2]  条目可解析      : 561 / 569   FAIL —— 8 条悬空
+         悬空: bcl_soc.ko
+         悬空: binder_prio.ko
+         悬空: common.ko
+         悬空: mca_pbb.ko
+         悬空: miwill.ko
+         悬空: nvmem_qfprom.ko
+         悬空: qcom_cache_allocation.ko
+         悬空: quic.ko
+  [C3]  无重复条目      : 唯一 374 / 569   WARN —— 195 条重复（不阻塞，见 --help）
+         重复: adsp_loader_dlkm.ko
+         重复: audio_pkt_dlkm.ko
+         重复: audio_prm_dlkm.ko
+         重复: audpkt_ion_dlkm.ko
+         重复: bt_fm_swr.ko
+         重复: btfm_slim_codec.ko
+         重复: btfmcodec.ko
+         重复: btpower.ko
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+集合 3/3: los-sd-flat
+  [C1]  CRC 一致        : 1 / 103   FAIL —— 102 个不符
+        CRC 分布: 0x797f2b3e=1  0xe976b219=102  
+        不符样例（最多 8 条）:
+         6lowpan.ko                               0xe976b219
+         8021q.ko                                 0xe976b219
+         9pnet.ko                                 0xe976b219
+         9pnet_fd.ko                              0xe976b219
+         aqc111.ko                                0xe976b219
+         asix.ko                                  0xe976b219
+         ax88179_178a.ko                          0xe976b219
+         bluetooth.ko                             0xe976b219
+         ……（其余 94 个省略）
+  [C1b] vermagic 版本段 : 1 / 103   WARN —— 102 个不是 6.12.69-android16-6*（不阻塞，见 --help）
+        vermagic 分布: 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k×1  6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k×102  
+  [C2]  条目可解析      : 81 / 82   FAIL —— 1 条悬空
+         悬空: tls.ko
+  [C3]  无重复条目      : 唯一 82 / 82   PASS
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  los-vb                         FAIL     461     405     405      8     3 有
+  los-vd                         FAIL     402     366     366      8   195 有
+  los-sd-flat                    FAIL     103     102     102      1     0 有
+
+门禁结果：FAIL —— 拒绝出包。
+  · C1 3 个集合存在 module_layout CRC 不符：模块世代与内核不匹配
+  · C2 3 个集合存在悬空条目：modules.load 指向不存在的文件
+### exit=1
+
+############ 实测 2：stock 现状（期望 PASS） ############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/3: stock-vb
+  [C1]  CRC 一致        : 461 / 461   PASS
+        CRC 分布: 0x797f2b3e=461  
+  [C1b] vermagic 版本段 : 461 / 461   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×461  
+  [C2]  条目可解析      : 172 / 172   PASS
+  [C3]  无重复条目      : 唯一 169 / 172   WARN —— 3 条重复（不阻塞，见 --help）
+         重复: bootinfo.ko
+         重复: debug_ext.ko
+         重复: smcinvoke_dlkm.ko
+  => PASS
+────────────────────────────────────────────────────────────────────────
+集合 2/3: stock-vd
+  [C1]  CRC 一致        : 402 / 402   PASS
+        CRC 分布: 0x797f2b3e=402  
+  [C1b] vermagic 版本段 : 402 / 402   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×402  
+  [C2]  条目可解析      : 665 / 665   PASS
+  [C3]  无重复条目      : 唯一 402 / 665   WARN —— 263 条重复（不阻塞，见 --help）
+         重复: adsp_loader_dlkm.ko
+         重复: audio_pkt_dlkm.ko
+         重复: audio_prm_dlkm.ko
+         重复: audpkt_ion_dlkm.ko
+         重复: aw882xx_dlkm.ko
+         重复: bt_fm_swr.ko
+         重复: btfm_slim_codec.ko
+         重复: btfmcodec.ko
+  => PASS
+────────────────────────────────────────────────────────────────────────
+集合 3/3: stock-sd-flat
+  [C1]  CRC 一致        : 103 / 103   PASS
+        CRC 分布: 0x797f2b3e=103  
+  [C1b] vermagic 版本段 : 103 / 103   PASS
+        vermagic 分布: 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k×103  
+  [C2]  条目可解析      : 82 / 82   PASS
+  [C3]  无重复条目      : 唯一 82 / 82   PASS
+  => PASS
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  stock-vb                       PASS     461       0       0      0     3 有
+  stock-vd                       PASS     402       0       0      0   263 有
+  stock-sd-flat                  PASS     103       0       0      0     0 有
+
+门禁结果：PASS —— 模块与内核 KMI 一致，可以出包。
+### exit=0
+
+############ 实测 3：方案 A1 修复后（期望 PASS） ############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/2: fixed-vb
+  [C1]  CRC 一致        : 461 / 461   PASS
+        CRC 分布: 0x797f2b3e=461  
+  [C1b] vermagic 版本段 : 461 / 461   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×461  
+  [C2]  条目可解析      : 139 / 139   PASS
+  [C3]  无重复条目      : 唯一 139 / 139   PASS
+  => PASS
+────────────────────────────────────────────────────────────────────────
+集合 2/2: fixed-vd
+  [C1]  CRC 一致        : 402 / 402   PASS
+        CRC 分布: 0x797f2b3e=402  
+  [C1b] vermagic 版本段 : 402 / 402   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×402  
+  [C2]  条目可解析      : 366 / 366   PASS
+  [C3]  无重复条目      : 唯一 366 / 366   PASS
+  => PASS
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  fixed-vb                       PASS     461       0       0      0     0 有
+  fixed-vd                       PASS     402       0       0      0     0 有
+
+门禁结果：PASS —— 模块与内核 KMI 一致，可以出包。
+### exit=0
+
+############ 附 A：集合名去重（两个目录都叫 lib/modules）############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/2: los/lib/modules
+  [C1]  CRC 一致        : 0 / 2   FAIL —— 2 个不符
+        CRC 分布: 0xe976b219=2  
+  [C1b] vermagic 版本段 : 0 / 2   WARN —— 2 个不是 6.12.69-android16-6*（不阻塞，见 --help）
+        vermagic 分布: 6.12.23-android16-5-gd8653a69a3aa-mi-4k×2  
+  [C2]  条目可解析      : 跳过（--no-load）
+  [C3]  无重复条目      : 跳过（--no-load）
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+集合 2/2: stock/lib/modules
+  [C1]  CRC 一致        : 2 / 2   PASS
+        CRC 分布: 0x797f2b3e=2  
+  [C1b] vermagic 版本段 : 2 / 2   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×2  
+  [C2]  条目可解析      : 跳过（--no-load）
+  [C3]  无重复条目      : 跳过（--no-load）
+  => PASS
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  los/lib/modules                FAIL       2       2       2      0     0 无
+  stock/lib/modules              PASS       2       0       0      0     0 无
+
+门禁结果：FAIL —— 拒绝出包。
+  · C1 1 个集合存在 module_layout CRC 不符：模块世代与内核不匹配
+### exit=1
+（上面汇总表两行的集合名应分别是 los/lib/modules 与 stock/lib/modules，不能都是 modules）
+
+############ 附 B：LOS system_dlkm 版本化目录 vs flatten 副本 ############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/2: los-sd-ver
+  [C1]  CRC 一致        : 103 / 103   PASS
+        CRC 分布: 0x797f2b3e=103  
+  [C1b] vermagic 版本段 : 103 / 103   PASS
+        vermagic 分布: 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k×103  
+  [C2]  条目可解析      : 82 / 82   PASS
+        其中 82 条是相对路径写法（kernel/…），已按 basename 解析
+  [C3]  无重复条目      : 唯一 82 / 82   PASS
+  => PASS
+────────────────────────────────────────────────────────────────────────
+集合 2/2: los-sd-flat
+  [C1]  CRC 一致        : 1 / 103   FAIL —— 102 个不符
+        CRC 分布: 0x797f2b3e=1  0xe976b219=102  
+  [C1b] vermagic 版本段 : 1 / 103   WARN —— 102 个不是 6.12.69-android16-6*（不阻塞，见 --help）
+        vermagic 分布: 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k×1  6.12.23-android16-5-g75e9b1c7ae7c-abogki463945075-4k×102  
+  [C2]  条目可解析      : 81 / 82   FAIL —— 1 条悬空
+  [C3]  无重复条目      : 唯一 82 / 82   PASS
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  los-sd-ver                     PASS     103       0       0      0     0 有
+  los-sd-flat                    FAIL     103     102     102      1     0 有
+
+门禁结果：FAIL —— 拒绝出包。
+  · C1 1 个集合存在 module_layout CRC 不符：模块世代与内核不匹配
+  · C2 1 个集合存在悬空条目：modules.load 指向不存在的文件
+### exit=1
+
+############ 附 C：--no-load（CRC-only）############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/1: stock-sd-flat
+  [C1]  CRC 一致        : 103 / 103   PASS
+        CRC 分布: 0x797f2b3e=103  
+  [C1b] vermagic 版本段 : 103 / 103   PASS
+        vermagic 分布: 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k×103  
+  [C2]  条目可解析      : 跳过（--no-load）
+  [C3]  无重复条目      : 跳过（--no-load）
+  => PASS
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  stock-sd-flat                  PASS     103       0       0      0     0 无
+
+门禁结果：PASS —— 模块与内核 KMI 一致，可以出包。
+### exit=0
+
+############ 附 D：--strict-dup 下 stock 也 FAIL（原厂自带 263 重复）############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2/C3；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/1: stock-vd
+  [C1]  CRC 一致        : 402 / 402   PASS
+        CRC 分布: 0x797f2b3e=402  
+  [C1b] vermagic 版本段 : 402 / 402   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×402  
+  [C2]  条目可解析      : 665 / 665   PASS
+  [C3]  无重复条目      : 唯一 402 / 665   FAIL —— 263 条重复（--strict-dup）
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  stock-vd                       FAIL     402       0       0      0   263 有
+
+门禁结果：FAIL —— 拒绝出包。
+  · C3 1 个集合存在重复条目（--strict-dup）
+### exit=1
+
+############ 附 E：--strict-vermagic 下 LOS 也 FAIL（405 条旧 vermagic）############
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           硬门禁 C1/C2/C1b；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/1: los-vb
+  [C1]  CRC 一致        : 56 / 461   FAIL —— 405 个不符
+        CRC 分布: 0x797f2b3e=56  0xe976b219=405  
+  [C1b] vermagic 版本段 : 56 / 461   FAIL —— 405 个不是 6.12.69-android16-6*（--strict-vermagic）
+        vermagic 分布: 6.12.69-android16-6-4k×56  6.12.23-android16-5-gd8653a69a3aa-mi-4k×405  
+  [C2]  条目可解析      : 142 / 150   FAIL —— 8 条悬空
+  [C3]  无重复条目      : 唯一 147 / 150   WARN —— 3 条重复（不阻塞，见 --help）
+  => FAIL
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  los-vb                         FAIL     461     405     405      8     3 有
+
+门禁结果：FAIL —— 拒绝出包。
+  · C1 1 个集合存在 module_layout CRC 不符：模块世代与内核不匹配
+  · C2 1 个集合存在悬空条目：modules.load 指向不存在的文件
+  · C1b 1 个集合 vermagic 版本段不符（--strict-vermagic）
+### exit=1
+
+############ 附 F：边界用例 ############
+空目录 exit=1
+
+门禁结果：FAIL —— 拒绝出包。
+  · C1 1 个集合存在 module_layout CRC 不符：模块世代与内核不匹配
+不存在目录 exit=1
+
+门禁结果：FAIL —— 拒绝出包。
+  · C1 1 个集合存在 module_layout CRC 不符：模块世代与内核不匹配
+无参数 exit=2
+未知选项 exit=2
+内核不存在 exit=2
+
+############ 附 G：-K 抓半迁移（本次事故形态）############
+-- G1 正例：期望 KMI 与内核一致 → 应 PASS --
+────────────────────────────────────────────────────────────────────────
+KMI 门禁   期望 module_layout CRC = 0x797f2b3e   期望 KMI = 6.12.69-android16-6
+           内核 banner 校验 = PASS (6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k)
+           硬门禁 C1/C2；其余为告警
+────────────────────────────────────────────────────────────────────────
+集合 1/2: stock-vb
+  [C1]  CRC 一致        : 461 / 461   PASS
+        CRC 分布: 0x797f2b3e=461  
+  [C1b] vermagic 版本段 : 461 / 461   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×461  
+  [C2]  条目可解析      : 172 / 172   PASS
+  [C3]  无重复条目      : 唯一 169 / 172   WARN —— 3 条重复（不阻塞，见 --help）
+  => PASS
+────────────────────────────────────────────────────────────────────────
+集合 2/2: stock-vd
+  [C1]  CRC 一致        : 402 / 402   PASS
+        CRC 分布: 0x797f2b3e=402  
+  [C1b] vermagic 版本段 : 402 / 402   PASS
+        vermagic 分布: 6.12.69-android16-6-4k×402  
+  [C2]  条目可解析      : 665 / 665   PASS
+  [C3]  无重复条目      : 唯一 402 / 665   WARN —— 263 条重复（不阻塞，见 --help）
+  => PASS
+────────────────────────────────────────────────────────────────────────
+汇总
+  集合                         结果    .ko CRC不符  VMAGIC 悬空 重复 清单
+  stock-vb                       PASS     461       0       0      0     3 有
+  stock-vd                       PASS     402       0       0      0   263 有
+
+门禁结果：PASS —— 模块与内核 KMI 一致，可以出包。
+### exit=0
+-- G2 反例：把期望 KMI 设成旧世代 6.12.23-android16-5 → 必须 FAIL --
+           内核 banner 校验 = FAIL —— 内核是 6.12.69-android16-6-g43b5ab7e247d-abogki561813157-4k，与期望 KMI 6.12.23-android16-5 不符
+  [C1]  CRC 一致        : 0 / 461   FAIL —— 461 个不符
+门禁结果：FAIL —— 拒绝出包。
+  · 内核 banner 与期望 KMI 不符：内核被换过，但模块没跟着换
+### exit=1

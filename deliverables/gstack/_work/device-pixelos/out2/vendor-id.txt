@@ -1,0 +1,22 @@
+=== vendor 身份 ===
+Xiaomi/pandora/pandora:16/BQ2A.260225.001-BP2A.250705.008/OS4.0.5.0.XBLCN:user/release-keys
+Mon Nov  2 03:46:09 CST 2026
+CP2A.260605.016
+17
+2026-10-01
+
+=== 挂载来源 ===
+/dev/block/dm-4 /vendor ext4 ro,seclabel,relatime,discard 0 0
+/dev/block/dm-5 /vendor_dlkm ext4 ro,seclabel,relatime,discard 0 0
+/dev/block/dm-1 /system_dlkm ext4 ro,seclabel,relatime,discard 0 0
+/dev/block/dm-6 /odm ext4 ro,seclabel,relatime,discard 0 0
+
+=== /vendor/lib/modules 真实路径 ===
+lrw-r--r-- 1 root root 24 2009-01-01 08:00 /vendor/lib/modules -> /vendor_dlkm/lib/modules
+/vendor_dlkm/lib/modules
+
+=== 模块数 ===
+vendor/lib/modules: 402
+vendor_dlkm:        402
+system_dlkm ver:    103
+system_dlkm flat:   103

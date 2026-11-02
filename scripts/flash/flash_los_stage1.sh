@@ -26,3 +26,6 @@ if [ "$FAIL" -eq 0 ]; then
 else
     echo "阶段 1 中断于第 $N 个"
 fi
+
+# 失败必须体现在退出码上：调用方/CI 靠 $? 判断，不能只靠屏幕上的「中断于第 N 个」
+exit "$FAIL"

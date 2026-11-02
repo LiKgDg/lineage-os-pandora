@@ -1,0 +1,3 @@
+Filesystem       Size Used Avail Use% Mounted on
+/dev/block/dm-50 477G 5.0G  472G   2% /mnt/pass_through/0/emulated
+/dev/block/sda20  62M  43M   19M  70% /metadata
