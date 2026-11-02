@@ -51,7 +51,7 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 │   ├── d4-boot-verify-plan.md D4 刷入启动验证预案：判据、步骤、回滚、风险
 │   ├── rebuild-from-scratch-plan.md  从零重建方案（方案 A：仓库化 + 自编内核）
 │   ├── kernel-build-feasibility.md   内核源码编译可行性结论（为什么走预编译、取证往哪走）
-│   ├── scripts-index.md       68 个脚本的索引（selfcheck.sh --index 生成，勿手改）
+│   ├── scripts-index.md       69 个脚本的索引（selfcheck.sh --index 生成，勿手改）
 │   ├── device-partitions.csv  设备 166 个分区的实测尺寸
 │   ├── logs/                  刷机与 sideload 日志
 │   └── ref/                   参考设备的配置（oneplus sm8850）
@@ -82,7 +82,7 @@ Xiaomi 17 Pro（`pandora` / `canoe` / SM8850）的 LineageOS 移植与 TWRP 恢�
 └── releases/                  镜像发布说明；本地整包 `*.zip` 被 .gitignore 排除，不入库
 ```
 
-`scripts/` 下现有 **68 个**脚本（`.sh` / `.py`），逐条说明见 [`docs/scripts-index.md`](docs/scripts-index.md)，
+`scripts/` 下现有 **69 个**脚本（`.sh` / `.py`），逐条说明见 [`docs/scripts-index.md`](docs/scripts-index.md)，
 该文件由 `bash scripts/maintain/selfcheck.sh --index` 生成，不要手改。
 2026-11 新增的四个与设备取数、blob 补齐、自检相关：
 

@@ -18,6 +18,7 @@
 
 | 脚本 | 说明 |
 |---|---|
+| `gen_pandora_manifest.py` | 生成 vendor/xiaomi/pandora 的 proprietary-files.txt。 |
 | `rebuild_blobs_a17.sh` | 用 A17 (OS4.0.5.0) blobs 重建 vendor/xiaomi/sm8850-common |
 | `rebuild_blobs_a17_surgical.sh` | 保持 A16 的文件选择范围，二进制替换为 A17 版本 |
 | `update_to_a17.py` | 把设备树中 A16（OS3.0.318.0 / 6.12.23）配置更新为 A17（OS4.0.5.0 / 6.12.69）。 |
