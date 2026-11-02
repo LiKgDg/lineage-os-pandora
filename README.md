@@ -346,6 +346,19 @@ D2 已解决的问题（细节见 `docs/los24-build-notes.md`）：
 
 ---
 
+## 已发布的设备树仓库
+
+设备树已拆成三个独立仓库发布，`lineage.dependencies` 互相引用，可直接被 `roomservice` / `repo` 取用：
+
+| 仓库 | 内容 | 说明 |
+|---|---|---|
+| [`LiKgDg/android_device_xiaomi_pandora`](https://github.com/LiKgDg/android_device_xiaomi_pandora) | 机型树（29 文件） | 本仓 `device-trees/los24-pandora/` 的同源副本 + LICENSE / NOTICE / README |
+| [`LiKgDg/android_device_xiaomi_sm8850-common`](https://github.com/LiKgDg/android_device_xiaomi_sm8850-common) | 通用设备配置（188 文件） | 上游 `lolipuru/android_device_xiaomi_sm8850-common`(lineage-24.0) 快照，为 pandora 适配 |
+| [`LiKgDg/android_device_xiaomi_pandora-kernel`](https://github.com/LiKgDg/android_device_xiaomi_pandora-kernel) | 清单与校验（10 文件） | **不含内核二进制**（小米分发物）；含 1112 条 sha256 清单与 `verify.sh` |
+
+三个仓库均为 **实验性**：能编包已验证，能启动未验证，机型专属 blobs 尚未生成。
+细节见 [`docs/publish-plan.md`](docs/publish-plan.md) 与各仓 README。
+
 ## 许可证
 
 `scripts/`、`tools/`、`docs/` 下的原创内容采用 MIT（见 `LICENSE`）。
