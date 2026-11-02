@@ -1,4 +1,5 @@
 #!/bin/bash
+# flash_kernel_a17.sh —— 逐分区刷 A17 内核相关的 5 个分区（boot dtbo vendor_boot vendor_dlkm system_dlkm）
 FB="./platform-tools/fastboot.exe"
 IMG="D:/WSL/out/pandora/kernel-a17"
 PARTS="boot dtbo vendor_boot vendor_dlkm system_dlkm"

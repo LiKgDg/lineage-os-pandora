@@ -1,4 +1,5 @@
 #!/bin/bash
+# build_sysonly.sh —— 只编 system 镜像的构建入口（lunch lineage_pandora_sysonly）
 cd /root/android/lineage || exit 9
 export JAVA_HOME=/root/android/lineage/prebuilts/jdk/jdk21/linux-x86
 export PATH="$JAVA_HOME/bin:/root/android/lineage/prebuilts/build-tools/linux-x86/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"

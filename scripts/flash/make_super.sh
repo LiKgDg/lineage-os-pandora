@@ -1,4 +1,5 @@
 #!/bin/bash
+# make_super.sh —— 用 lpmake 把动态分区打包成 super.img
 set -e
 cd /root/android/lineage
 LPMAKE=out/host/linux-x86/bin/lpmake

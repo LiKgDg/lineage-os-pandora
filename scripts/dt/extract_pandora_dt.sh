@@ -1,4 +1,5 @@
 #!/bin/bash
+# extract_pandora_dt.sh —— 从原厂 boot/vendor_boot/dtbo 提取设备树（pandora-dt 的早期版本）
 set -e
 W=/root/pandora-dt
 UB=/root/los24/system/tools/mkbootimg/unpack_bootimg.py

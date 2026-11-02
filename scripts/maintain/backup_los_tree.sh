@@ -1,4 +1,5 @@
 #!/bin/bash
+# backup_los_tree.sh —— 把已同步的 LOS 设备/厂商树备份到 backup/
 set -e
 BK="/mnt/c/Users/MSI/Desktop/HB/1/2/2/lineage os/backup/los-pandora"
 mkdir -p "$BK"

@@ -1,4 +1,5 @@
 #!/bin/bash
+# check_twrp_tree.sh —— 检查 TWRP 树的关键路径是否齐全
 cd /root/twrp || exit 9
 echo "=== 关键路径 ==="
 for p in \

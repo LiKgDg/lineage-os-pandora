@@ -1,4 +1,5 @@
 #!/bin/bash
+# build_recovery_fb.sh —— 临时改写 BoardConfig.mk 的 recovery 开关，用于单独编 recovery
 cd /root/android/lineage || exit 9
 D=device/xiaomi/pandora/BoardConfig.mk
 python3 - <<'PY'

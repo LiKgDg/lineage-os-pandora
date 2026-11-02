@@ -1,4 +1,5 @@
 #!/bin/bash
+# apply_rcmode_patch.sh —— 把 rc-mode 二进制装进 recovery/root/system/bin
 set -e
 S="/mnt/c/Users/MSI/Desktop/HB/1/2/2/lineage os/staging"
 D=/root/android/lineage/device/xiaomi/pandora/recovery/root

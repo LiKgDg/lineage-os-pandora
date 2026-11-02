@@ -1,4 +1,5 @@
 #!/bin/bash
+# apply_sysonly.sh —— 同上，作用于 sysonly 变体的 device 树
 set -e
 S="/mnt/c/Users/MSI/Desktop/HB/1/2/2/lineage os/staging"
 D=/root/android/lineage/device/xiaomi/pandora

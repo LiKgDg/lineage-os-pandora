@@ -1,4 +1,5 @@
 #!/bin/bash
+# apply.sh —— 把 staging/ 下的配置改动同步进 device/xiaomi/pandora
 set -e
 S="/mnt/c/Users/MSI/Desktop/HB/1/2/2/lineage os/staging"
 D=/root/android/lineage/device/xiaomi/pandora

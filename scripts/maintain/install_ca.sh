@@ -1,4 +1,5 @@
 #!/bin/bash
+# install_ca.sh —— 把 staging 里的自定义 CA 证书转换并安装进系统信任库
 set -e
 S="/mnt/c/Users/MSI/Desktop/HB/1/2/2/lineage os/staging"
 echo "=== 文件 ==="
