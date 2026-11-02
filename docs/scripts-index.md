@@ -12,20 +12,14 @@
 | `build_sysonly.sh` | build_sysonly.sh —— 只编 system 镜像的构建入口（lunch lineage_pandora_sysonly） |
 | `build_twrp.sh` | TWRP recovery 前台编译脚本 —— 在 GUI 终端里运行可看到 ninja 实时进度条 |
 | `los_sync.sh` | 初始化并同步 LineageOS 24.0 源码树，供 sm8850 完整 ROM 开发使用。 |
-| `lunch_sysonly.sh` | lunch_sysonly.sh —— 切到 sysonly 变体的 lunch 目标并导出环境 |
 | `make_fastboot_package.sh` | make_fastboot_package.sh —— 生成 `fastboot -w update` 可直接消费的整包 |
 | `make_pandora_kernel.sh` | 从 pandora 的 stock 分区镜像组装 device/xiaomi/pandora-kernel |
 | `make_pandora_kernel_a17.sh` | 从 pandora 的 A17 stock 分区镜像组装 device/xiaomi/pandora-kernel |
-| `twrp_sync.sh` | 初始化并同步 TWRP (twrp-16.0) 源码树。可反复执行，repo sync 是增量的。 |
-| `twrp_sync_groups.sh` | 补齐 manifest 组（pdk 组含 prebuilts/clang、prebuilts/build-tools 等构建必需项） |
 
 ## scripts/device
 
 | 脚本 | 说明 |
 |---|---|
-| `apply.sh` | apply.sh —— 把 staging/ 下的配置改动同步进 device/xiaomi/pandora |
-| `apply_sysonly.sh` | apply_sysonly.sh —— 同上，作用于 sysonly 变体的 device 树 |
-| `patch_sysonly.py` | Apply system-only port patches to the pandora device tree. |
 | `rebuild_blobs_a17.sh` | 用 A17 (OS4.0.5.0) blobs 重建 vendor/xiaomi/sm8850-common |
 | `rebuild_blobs_a17_surgical.sh` | 保持 A16 的文件选择范围，二进制替换为 A17 版本 |
 | `update_to_a17.py` | 把设备树中 A16（OS3.0.318.0 / 6.12.23）配置更新为 A17（OS4.0.5.0 / 6.12.69）。 |
@@ -50,7 +44,6 @@
 | `flash_los_stage1.sh` | 阶段 1：bootloader 模式刷物理分区 |
 | `flash_los_with_recovery.sh` | 补齐 LOS 物理分区（含 recovery），凑齐完整 AVB 签名集 |
 | `flash_super.sh` | system-only 刷机：super.img 路线（设备需在 bootloader fastboot 模式） |
-| `flash_sysonly.sh` | system-only 刷机流程（设备需先在 bootloader fastboot 模式） |
 | `make_super.sh` | make_super.sh —— 用 lpmake 把动态分区打包成 super.img |
 | `restore_stock_a17.sh` | 恢复 pandora 原厂 A17 物理分区 |
 | `restore_stock_full.sh` | 完整恢复 pandora 原厂 A17：物理分区 + super（逻辑分区） |
@@ -61,7 +54,6 @@
 |---|---|
 | `add_include.py` | 给 C++ 源文件补标准头文件（新版 libc++ 取消传递包含后的常见修复）。 |
 | `backup_los_tree.sh` | backup_los_tree.sh —— 把已同步的 LOS 设备/厂商树备份到 backup/ |
-| `check_twrp_tree.sh` | check_twrp_tree.sh —— 检查 TWRP 树的关键路径是否齐全 |
 | `clean_stale_modules.sh` | 清理 out/target/product/pandora 下混入旧世代模块的残留暂存 |
 | `clean_wsl_temp.sh` | 清理可再生的临时产物（不涉及 out/ 与备份） |
 | `cleanup_disk.sh` | 回收 Ubuntu 磁盘空间：移除构建不需要的 CTS、临时目录与缓存。 |
